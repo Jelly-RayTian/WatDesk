@@ -13,7 +13,6 @@ import {waitForTab} from '../core/sync';
 import {enabledPlatforms} from '../core/onboarding';
 import {pendingExamChanges} from '../core/organization';
 import {canReuseSource} from '../core/refresh-policy';
-let syncTail:Promise<void>=Promise.resolve();
 const fence=new SyncFence();const syncJobs=new Map<string,Promise<void>>();
 const ready=mutateState(recoverInterrupted);
 void ready.then(s=>configureSchoolLogin(s.settings.schoolAutoNext===true)).catch(()=>{});
@@ -24,22 +23,17 @@ async function refreshOnOpen(forceGrades=false){
   const targets:Exclude<Platform,'manual'>[]=[];
   for(const p of enabledPlatforms(await loadState()))if(await chrome.permissions.contains({origins:[origins[p]]}))targets.push(p);
   await mutateState(s=>({...s,syncRun:{started:Date.now(),targets,completed:[],reused:[],finished:false}}));
-  for(const p of targets){
+  await Promise.allSettled(targets.map(async p=>{
    if(canReuseSource(p,(await loadState()).sources[p],forceGrades)){
-    await mutateState(s=>({...s,syncRun:{...s.syncRun!,completed:[...s.syncRun!.completed,p],reused:[...s.syncRun!.reused||[],p]}}));continue;
+    await mutateState(s=>({...s,syncRun:{...s.syncRun!,completed:[...new Set([...s.syncRun!.completed,p])],reused:[...s.syncRun!.reused||[],p]}}));return;
    }
-   await mutateState(s=>({...s,syncRun:{...s.syncRun!,active:p}}));
    await sync(p,forceGrades);
-   const state=await loadState();
-   if(state.sources[p]?.status!=='ok'){
-    await mutateState(s=>({...s,syncRun:{...s.syncRun!,active:undefined,failed:p,finished:true}}));return;
-   }
-   await mutateState(s=>({...s,syncRun:{...s.syncRun!,active:undefined,completed:[...s.syncRun!.completed,p]}}));
-  }
+   await mutateState(s=>({...s,syncRun:{...s.syncRun!,...(s.sources[p]?.status==='ok'?{completed:[...new Set([...s.syncRun!.completed,p])]}:{failed:s.syncRun!.failed||p})}}));
+  }));
   await mutateState(s=>({...s,syncRun:{...s.syncRun!,finished:true}}));
  })();try{await openedRun}finally{openedRun=undefined}
 }
-function sync(p:Exclude<Platform,'manual'>,forceGrades=true){const running=syncJobs.get(p);if(running)return running;const job=syncTail.then(()=>runSync(p,forceGrades)).finally(()=>syncJobs.delete(p));syncTail=job.catch(()=>{});syncJobs.set(p,job);return job}
+function sync(p:Exclude<Platform,'manual'>,forceGrades=true){const running=syncJobs.get(p);if(running)return running;const job=runSync(p,forceGrades).finally(()=>syncJobs.delete(p));syncJobs.set(p,job);return job}
 async function runSync(p:Exclude<Platform,'manual'>,forceGrades:boolean){
  await ready;if(p==='cs135'&&(await loadState()).settings.cs135Enabled!==true)return;const token=fence.capture(p);const started=Date.now();
  try{
@@ -88,5 +82,5 @@ chrome.runtime.onInstalled.addListener(()=>{chrome.sidePanel.setPanelBehavior({o
 chrome.runtime.onStartup.addListener(()=>{chrome.alarms.create('reminders',{periodInMinutes:1});chrome.alarms.create('sync',{periodInMinutes:30})});
 chrome.alarms.onAlarm.addListener(alarm=>{if(alarm.name==='reminders')void notify().catch(()=>{});else if(alarm.name==='sync')void (async()=>{await refreshOnOpen(false)})()});
 
-// Returning from school sign-in resumes the pending queue without another Refresh click.
+// Returning from school sign-in retries failed sources without another Refresh click.
 chrome.tabs?.onUpdated?.addListener((_id,change,tab)=>{if(change.status!=='complete'||!tab.url||openedRun)return;const p=platforms.find(p=>p!=='cs135'&&tab.url?.startsWith(urls[p]));if(!p)return;void ready.then(async()=>{const status=(await loadState()).sources[p];if(status?.status==='error'&&/sign.in|signed.out|session.unreadable/i.test(status.error||''))void refreshOnOpen().catch(()=>{})})});

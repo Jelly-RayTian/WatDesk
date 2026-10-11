@@ -55,12 +55,12 @@ const listeners=new Set<any>();function publish(){listeners.forEach(fn=>fn({watd
  const demo=new URLSearchParams(location.search);const targets=enabledPlatforms(s);
  void (async()=>{
  s.syncRun={started:Date.now(),targets:[...targets],completed:[],finished:false};publish();
- for(const p of targets){
-  s.syncRun.active=p;s.sources[p]={...s.sources[p],status:'syncing',phase:p==='crowdmark'?'grades':'tasks',attempt:new Date().toISOString()};publish();
+ await Promise.all(targets.map(async p=>{
+ s.sources[p]={...s.sources[p],status:'syncing',phase:p==='crowdmark'?'grades':'tasks',attempt:new Date().toISOString()};publish();
   if(demo.has('syncdemo'))await new Promise(r=>setTimeout(r,demo.has('slowprogress')?12000:3500));
-  if(p==='crowdmark'&&(demo.has('syncerror')||demo.has('readfail'))){s.sources[p]={...s.sources[p],phase:undefined,durationMs:3500,status:'error',error:'signed-out: Please sign in on Crowdmark.'};s.syncRun={...s.syncRun,active:undefined,failed:p,finished:true};publish();return {ok:true,value:true}}
-  s.sources[p]={...s.sources[p],phase:undefined,durationMs:3500,status:'ok',at:new Date().toISOString()};s.syncRun.completed.push(p);s.syncRun.active=undefined;publish();
- }
+  if(p==='crowdmark'&&(demo.has('syncerror')||demo.has('readfail'))){s.sources[p]={...s.sources[p],phase:undefined,durationMs:3500,status:'error',error:'signed-out: Please sign in on Crowdmark.'};s.syncRun={...s.syncRun,failed:p};publish();return {ok:true,value:true}}
+  s.sources[p]={...s.sources[p],phase:undefined,durationMs:3500,status:'ok',at:new Date().toISOString()};s.syncRun.completed.push(p);publish();
+ }));
  s.syncRun!.finished=true;publish();})();return {ok:true,value:true}
 };case 'backup':return {ok:true,value:JSON.stringify(s,null,2)};case 'restore':s=validateBackup(m.text);break;case 'open':return {ok:true,value:true};case 'sync':s.sources[m.platform]={...s.sources[m.platform],status:'ok',phase:undefined,error:undefined,durationMs:1800,at:new Date().toISOString()};break;case 'schoolLogin':s.settings.schoolAutoNext=m.enabled;break;case 'settings':s.settings={...s.settings,...m.patch};break;case 'overlay':for(const id of m.ids||[m.id])s.overlays[id]={...s.overlays[id],...m.patch};break;case 'manual':s.entries=[...s.entries.filter(e=>e.id!==m.entry.id),m.entry];break;case 'delete':s.entries=s.entries.filter(e=>e.id!==m.id);break;default:return {ok:false,error:'Development preview: live connections are available in the extension.'}}publish();return {ok:true,value:true}}},tabs:{create:()=>{}},permissions:{request:async()=>true,contains:async()=>true}};
 void import('../src/ui/main');

@@ -24,22 +24,20 @@ it('coalesces duplicate openings while waiting for the real read to finish',asyn
  const second=ctx.message('refreshOnOpen');expect(finished).toBe(false);release({entries:[],courses:[]});
  await Promise.all([first,second]);expect(finished).toBe(true);expect(ctx.state().sources.cs135.status).toBe('ok');expect(mocked.read).toHaveBeenCalledTimes(1);vi.unstubAllGlobals();
 });
-it('opens and reads platforms one at a time, waiting for each result',async()=>{
- const ctx=await setup(true);const releases:Array<()=>void>=[];
- mocked.read.mockImplementation(()=>new Promise(resolve=>releases.push(()=>resolve({entries:[],courses:[]}))));
+it('reads platforms concurrently and saves a quick result while others are pending',async()=>{
+ const ctx=await setup(true);const releases=new Map<string,()=>void>();
+ mocked.read.mockImplementation(p=>new Promise(resolve=>releases.set(p,()=>resolve({entries:[],courses:[]}))));
  const run=ctx.message('refreshOnOpen');
- for(const [index,p] of ['learn','crowdmark','odyssey','cs135'].entries()){
-  await vi.waitFor(()=>expect(mocked.read).toHaveBeenCalledTimes(index+1));
-  expect(mocked.read.mock.calls[index][0]).toBe(p);expect(mocked.tab.mock.calls[index][0]).toBe(p);
-  expect(ctx.state().syncRun?.active).toBe(p);expect(ctx.state().syncRun?.completed).toHaveLength(index);
-  releases[index]();
- }
- await run;expect(ctx.state().syncRun?.completed).toEqual(['learn','crowdmark','odyssey','cs135']);expect(ctx.state().syncRun?.finished).toBe(true);vi.unstubAllGlobals();
+ await vi.waitFor(()=>expect(releases.size).toBe(4));
+ releases.get('odyssey')!();await vi.waitFor(()=>expect(ctx.state().syncRun?.completed).toContain('odyssey'));
+ expect(ctx.state().syncRun?.finished).toBe(false);expect(ctx.state().sources.learn.status).toBe('syncing');
+ for(const p of ['learn','crowdmark','cs135'])releases.get(p)!();
+ await run;expect(new Set(ctx.state().syncRun?.completed)).toEqual(new Set(['learn','crowdmark','odyssey','cs135']));vi.unstubAllGlobals();
 });
-it('pauses at a failed platform without opening later websites or clearing cached data',async()=>{
- const ctx=await setup(true);mocked.read.mockResolvedValueOnce({entries:[],courses:[]}).mockRejectedValue(Error('signed-out'));
- await ctx.message('refreshOnOpen');expect(mocked.read.mock.calls.map(c=>c[0])).toEqual(['learn','crowdmark','crowdmark']);expect(mocked.tab).toHaveBeenCalledTimes(2);
- expect(ctx.state().syncRun).toMatchObject({failed:'crowdmark',finished:true,completed:['learn']});expect(ctx.state().sources.crowdmark.error).toBe('signed-out');vi.unstubAllGlobals();
+it('a failed platform does not stop other sources from completing',async()=>{
+ const ctx=await setup(true);mocked.read.mockImplementation(async p=>{if(p==='crowdmark')throw Error('signed-out');return {entries:[],courses:[]}});
+ await ctx.message('refreshOnOpen');expect(ctx.state().syncRun?.completed).toEqual(expect.arrayContaining(['learn','odyssey','cs135']));
+ expect(ctx.state().syncRun).toMatchObject({failed:'crowdmark',finished:true});expect(ctx.state().sources.crowdmark.error).toBe('signed-out');vi.unstubAllGlobals();
 });
 
 it('avoids re-reading recent grade history on opening but refreshes it on demand',async()=>{
@@ -59,7 +57,7 @@ it('an individual retry reads only that platform and keeps the last successful d
 
 it('acknowledges background refresh immediately and skips CS135 unless selected',async()=>{
  const ctx=await setup(true);ctx.state().settings.cs135Enabled=false;let release:any;mocked.read.mockImplementationOnce(()=>new Promise(r=>{release=r})).mockResolvedValue({entries:[],courses:[]});
- const reply=await ctx.rawMessage('refreshOnOpen');expect(reply.ok).toBe(true);await vi.waitFor(()=>expect(mocked.read).toHaveBeenCalledTimes(1));expect(ctx.state().syncRun?.finished).toBe(false);release({entries:[],courses:[]});await vi.waitFor(()=>expect(ctx.state().syncRun?.finished).toBe(true));expect(mocked.read.mock.calls.map(c=>c[0])).toEqual(['learn','crowdmark','odyssey']);vi.unstubAllGlobals();
+ const reply=await ctx.rawMessage('refreshOnOpen');expect(reply.ok).toBe(true);await vi.waitFor(()=>expect(mocked.read).toHaveBeenCalledTimes(3));expect(ctx.state().syncRun?.finished).toBe(false);release({entries:[],courses:[]});await vi.waitFor(()=>expect(ctx.state().syncRun?.finished).toBe(true));expect(mocked.read.mock.calls.map(c=>c[0])).toEqual(['learn','crowdmark','odyssey']);vi.unstubAllGlobals();
 });
 
 it('reopens the same canonical page once and retries after an expired API session',async()=>{

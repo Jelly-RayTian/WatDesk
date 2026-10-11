@@ -24,3 +24,10 @@ it('shows progress for a manual connection before any background run exists',()=
  expect(html).toContain('aria-valuenow="0"');
  expect(html).toContain('sync-progress-segment reading');
 });
+
+it('animates every concurrent source while counting only completed platforms',()=>{
+ const state=emptyState('zh-CN');state.syncRun={started:Date.now(),targets:['learn','crowdmark','odyssey'],completed:['odyssey'],finished:false};
+ state.sources.learn={status:'syncing',phase:'tasks'};state.sources.crowdmark={status:'ok',phase:'grades'};state.sources.odyssey={status:'ok'};
+ const html=renderToStaticMarkup(<BackgroundSync state={state} retry={()=>{}} details={()=>{}}/>);
+ expect(html).toContain('2 个平台同时读取中');expect(html.match(/sync-progress-segment reading/g)).toHaveLength(2);expect(html).toContain('aria-valuenow="1"');
+});

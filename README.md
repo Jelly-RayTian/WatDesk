@@ -8,7 +8,7 @@ Independent bilingual academic workspace for University of Waterloo. Edge Manife
 2. Open `edge://extensions`, enable Developer mode, choose **Load unpacked / 加载解压缩的扩展**, select that folder.
 3. First launch opens platform setup. Connect Learn, Crowdmark and Odyssey; CS135 is optional and disabled until selected. Review imported counts, then enter the workspace. The full-page button is visible at the top of setup and the side panel.
 4. Pin WatDesk. Click its toolbar icon to open the side panel. Use **打开完整面板 / Open full workspace** for the full page.
-5. Installation requests access to the three core sites: Learn, Crowdmark and Odyssey. First opening automatically opens and connects them in order. CS135 and school SSO helper permissions remain optional. Sign in on Learn, Crowdmark and Odyssey themselves, SSO entries are clicked automatically when possible; passwords and verification stay under your control. Sync resumes when you return to the platform. CS135 calendar is public.
+5. Installation requests access to the three core sites: Learn, Crowdmark and Odyssey. First opening automatically opens and connects them in parallel. CS135 and school SSO helper permissions remain optional. Sign in on Learn, Crowdmark and Odyssey themselves, SSO entries are clicked automatically when possible; passwords and verification stay under your control. Sync resumes when you return to the platform. CS135 calendar is public.
 
 ## Features
 
@@ -50,3 +50,7 @@ Enable **学校登录自动继续 / School sign-in helper** in Settings and gran
 Crowdmark grade pages use existing same-origin navigation links where available. Current courses are read before archive, each page has a separate wait budget, and successfully read courses are saved immediately even if a later course fails. Silent archive checks are cached for one day; manual refresh bypasses the cache. Grade retries after failure wait five minutes during automatic refresh; manual refresh retries immediately.
 
 Platform overall grades, category aggregates and class averages are labeled and excluded from equal-weight assessment statistics, trends and weight entry. Learn classification uses its [official grade object types](https://docs.valence.desire2learn.com/res/grade.html) when present, then common explicit titles. Unnamed aggregates without metadata cannot be safely inferred.
+
+## 1.0.3
+
+Platform refreshes run concurrently, with per-source deduplication and serialized state writes. A failed source does not block other sources. Overview course counts include open tasks and future exams; its upcoming list now includes Odyssey exam cards and supports course filtering.
