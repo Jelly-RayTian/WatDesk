@@ -1,6 +1,6 @@
 import {it,expect,vi} from 'vitest';
 import {emptyState} from '../src/domain';
-vi.mock('../src/adapters/source-tabs',()=>({sourceTab:async()=>42}));
+vi.mock('../src/adapters/source-tabs',()=>({sourceTab:async()=>42,withSourceTab:async(_p:any,fn:any,id=42)=>fn(id)}));
 vi.mock('../src/core/sync',async original=>({...await original<any>(),waitForTab:async()=>{}}));
 import {readCrowdmarkPages} from '../src/adapters/crowdmark-dom';
 const base='https://app.crowdmark.com';

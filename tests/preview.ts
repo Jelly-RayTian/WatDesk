@@ -29,6 +29,18 @@ if(new URLSearchParams(location.search).has('tools')){
  s.changes.unshift({kind:'exam',id:exam.id,title:exam.title,at:new Date().toISOString(),before:[null,exam.start,exam.end,'MC 2066','A03'].join('|'),after:[null,exam.start,exam.end,exam.location,exam.seat].join('|')});
 }
 if(new URLSearchParams(location.search).has('availability')){s.settings.onboardingComplete=true;s.sources.learn.issues=[{course:'MATH 135',tool:'grades',kind:'unavailable',code:'forbidden',status:403},{course:'MATH 137',tool:'quizzes',kind:'unavailable',code:'not-found',status:404}]}
+// Opt-in observation of the native animation during local visual checks.
+if(new URLSearchParams(location.search).has('motioncheck')){
+ const nativeAnimate=Element.prototype.animate;
+ Element.prototype.animate=function(frames,options){
+  const animation=nativeAnimate.call(this,frames,options);
+  if(this instanceof HTMLElement&&this.matches('[data-page]')){
+   this.dataset.motionTiming=JSON.stringify(animation.effect?.getTiming());
+   requestAnimationFrame(()=>{const style=getComputedStyle(this);this.dataset.motionFrame=JSON.stringify({opacity:style.opacity,transform:style.transform})});
+  }
+  return animation;
+ };
+}
 const listeners=new Set<any>();function publish(){listeners.forEach(fn=>fn({watdesk:{newValue:structuredClone(s)}}))}
 (window as any).chrome={storage:{onChanged:{addListener:(f:any)=>listeners.add(f),removeListener:(f:any)=>listeners.delete(f)}},runtime:{getURL:()=>'/preview.html',sendMessage:async(m:any)=>{switch(m.type){case 'state':return {ok:true,value:structuredClone(s)};case 'refreshOnOpen':{
  const demo=new URLSearchParams(location.search);const targets=enabledPlatforms(s);

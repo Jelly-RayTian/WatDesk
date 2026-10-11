@@ -1,7 +1,7 @@
 import type {Entry,Course,AppState} from '../domain';
 import {retryFrame,waitForTab} from '../core/sync';
 import {campusInstant} from '../core/util';
-import {sourceTab} from './source-tabs';
+import {withSourceTab} from './source-tabs';
 export interface CMTable {headers:string[];rows:Array<{cells:string[];href:string}>}
 function dueDate(text:string,zone:string){
  const m=text.match(/([A-Za-z]{3})\s+(\d{1,2}),\s+(\d{4})\s+(\d{1,2}):(\d{2})\s*(AM|PM)/i);if(!m)return null;
@@ -54,12 +54,16 @@ async function capture(tabId:number,path:string,kind:'courses'|'assessments',cou
  const data=out?.result as any;if(!data||data.error)throw Error(data?.error||'crowdmark-page-unreadable');return data;
 }
 export async function readCrowdmarkPages(state:AppState,apiLinks?:Array<{href:string;name:string;count?:string}>){
- const tab=await chrome.tabs.get(await sourceTab('crowdmark'));if(!tab.id)throw Error('needs-page');
- const original=tab.url||'https://app.crowdmark.com/student/courses';const deadline=Date.now()+45000;let lastPath='';
- const read=async(path:string,kind:'courses'|'assessments',count:number|null=null)=>{if(Date.now()>=deadline)throw Error('crowdmark-grades-timeout');lastPath=path;return capture(tab.id!,path,kind,count,deadline)};
+ let tab=await withSourceTab('crowdmark',id=>chrome.tabs.get(id));if(!tab.id)throw Error('needs-page');
+ let original=tab.url||'https://app.crowdmark.com/student/courses';const deadline=Date.now()+45000;let lastPath='';
+ const read=async(path:string,kind:'courses'|'assessments',count:number|null=null)=>withSourceTab('crowdmark',async id=>{
+  if(Date.now()>=deadline)throw Error('crowdmark-grades-timeout');
+  if(id!==tab.id){tab=await chrome.tabs.get(id);original=tab.url||'https://app.crowdmark.com/student/courses'}
+  lastPath=path;return capture(id,path,kind,count,deadline);
+ },tab.id);
  try{
   // Finish the tab's initial navigation before requesting another document.
-  await waitForTab(tab.id);
+  await withSourceTab('crowdmark',async id=>{await waitForTab(id);if(id!==tab.id){tab=await chrome.tabs.get(id);original=tab.url||'https://app.crowdmark.com/student/courses'}},tab.id);
   const list=apiLinks?{links:apiLinks,identity:undefined}:await read('/student/courses','courses');let warning:string|undefined;let archived:any[]=[];
   try{if(apiLinks)throw Error('api-list-complete');const old=await read('/student/course-archive','courses');if(old.identity&&list.identity&&old.identity!==list.identity)throw Error('identityChanged');archived=old.links}catch(e){if(e instanceof Error&&e.message==='identityChanged')throw e;if(!apiLinks)warning='crowdmark-archive-unavailable'}
   const links=[...new Map([...list.links,...archived].filter((c:any)=>/^\/student\/courses\/[^/]+\/?$/.test(c.href)).map((c:any)=>[c.href,c])).values()] as Array<{href:string;name:string;count?:string}>;

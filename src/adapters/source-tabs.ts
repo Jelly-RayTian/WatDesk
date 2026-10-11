@@ -2,6 +2,14 @@ import {origins,urls,type Platform} from '../domain';
 export type SourcePlatform=Exclude<Platform,'manual'>;
 const remembered=new Map<SourcePlatform,number>();
 const opening=new Map<SourcePlatform,Promise<number>>();
+// A tab can disappear after acquisition, while a page or a grade table loads.
+// Only retry that lifecycle error; permission, sign-in and network errors propagate.
+export async function withSourceTab<T>(p:SourcePlatform,read:(id:number)=>Promise<T>,preferredId?:number):Promise<T>{
+ for(let attempt=0;;attempt++){
+  try{return await read(attempt===0&&preferredId!=null?preferredId:await sourceTab(p))}
+  catch(e){if(attempt>=2||!/no tab with id|invalid tab id|tab (?:was |has been )?closed/i.test(e instanceof Error?e.message:String(e)))throw e}
+ }
+}
 // A single tab acquisition per source, shared by sync and the Open button.
 export async function sourceTab(p:SourcePlatform,activate=false):Promise<number>{
  let job=opening.get(p);
