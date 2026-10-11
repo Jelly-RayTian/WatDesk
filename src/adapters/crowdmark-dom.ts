@@ -11,7 +11,7 @@ function dueDate(text:string,zone:string){
 }
 export function parseCrowdmarkTable(table:CMTable,course:string,zone:string,courseId=''):Entry[]{
  const col=(name:string)=>table.headers.findIndex(h=>h.toLowerCase()===name.toLowerCase());const title=col('Title'),score=col('Score'),status=col('Status'),due=col('Due date');if(title<0)return [];
- return table.rows.filter(r=>/^\/student\/assessments\/[^/]+\/?$/.test(r.href)).map(r=>{const st=r.cells[status]||'';const raw=r.cells[score]?.trim()||'';const m=raw.match(/^(\d+(?:\.\d+)?)\s*%$/);return {id:`crowdmark:page:${r.href.split('/').filter(Boolean).at(-1)}`,platform:'crowdmark',course,title:r.cells[title],type:'task',start:null,end:null,due:due>=0?dueDate(r.cells[due]||'',zone):null,status:m||/^(graded|submitted|completed)\b/i.test(st.trim())?'submitted':'open',url:'https://app.crowdmark.com'+r.href,scorePercent:m?Number(m[1]):undefined,gradeStatus:m||/^graded\b/i.test(st.trim())?'graded':/^submitted\b/i.test(st.trim())?'submitted':'pending',readerCourseId:courseId}});
+ return table.rows.filter(r=>/^\/student\/assessments\/[^/]+\/?$/.test(r.href)).map(r=>{const st=r.cells[status]||'';const raw=r.cells[score]?.trim()||'';const m=raw.match(/^(\d+(?:\.\d+)?)\s*%$/),points=raw.match(/^(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)$/);const value=m?Number(m[1]):points&&Number(points[2])>0?Number(points[1])/Number(points[2])*100:undefined;return {id:`crowdmark:page:${r.href.split('/').filter(Boolean).at(-1)}`,platform:'crowdmark',course,title:r.cells[title],type:'task',start:null,end:null,due:due>=0?dueDate(r.cells[due]||'',zone):null,status:value!=null||/^(graded|submitted|completed)\b/i.test(st.trim())?'submitted':'open',url:'https://app.crowdmark.com'+r.href,scorePercent:value,gradeText:value!=null?raw:undefined,gradeStatus:value!=null||/^graded\b/i.test(st.trim())?'graded':/^submitted\b/i.test(st.trim())?'submitted':'pending',readerCourseId:courseId}});
 }
 export function gradeStats(rows:Entry[]){const scores=rows.filter(e=>!e.gone&&typeof e.scorePercent==='number'&&Number.isFinite(e.scorePercent)).map(e=>e.scorePercent!);return {count:scores.length,average:scores.length?scores.reduce((a,b)=>a+b,0)/scores.length:null,highest:scores.length?Math.max(...scores):null,lowest:scores.length?Math.min(...scores):null}}
 export function gradeCourseKey(e:Entry){return e.readerCourseId||e.course}
@@ -73,7 +73,7 @@ export async function readCrowdmarkPages(state:AppState,apiLinks?:Array<{href:st
    for(const table of page.tables)entries.push(...parseCrowdmarkTable(table,code,page.zone,slug));
   }
   const retained=state.entries.filter(e=>e.platform==='crowdmark'&&!e.gone&&e.readerCourseId&&!readIds.has(e.readerCourseId));
-  if(retained.length){entries.push(...retained);warning||='crowdmark-retained-unseen-courses';courses.push(...state.courses.filter(c=>c.id.startsWith('crowdmark:')&&!readIds.has(c.id.slice(10))))}
+  if(retained.length){entries.push(...retained.map(e=>({...e,readState:'retained' as const})));warning||='crowdmark-retained-unseen-courses';courses.push(...state.courses.filter(c=>c.id.startsWith('crowdmark:')&&!readIds.has(c.id.slice(10))))}
   return {entries:[...new Map(retainCrowdmarkIds(entries,state.entries).map(e=>[e.id,e])).values()],courses,identity:list.identity,warning};
  }finally{const current=await chrome.tabs.get(tab.id).catch(()=>null);if(current?.url==='https://app.crowdmark.com'+lastPath&&current.url!==original)await chrome.tabs.update(tab.id,{url:original}).catch(()=>{})}
 }

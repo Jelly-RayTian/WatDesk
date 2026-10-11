@@ -43,7 +43,7 @@ async function runSync(p:Exclude<Platform,'manual'>,forceGrades:boolean){
  try{
   await mutateState(s=>({...s,sources:{...s.sources,[p]:{...s.sources[p],attempt:new Date().toISOString(),phase:'page',status:'syncing'}}}));
   const result=await withTimeout((async()=>{const tabId=await sourceTab(p);await waitForTab(tabId);await autoLogin(p,tabId);await mutateState(s=>fence.current(p,token)?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:'tasks'}}}:s);try{return await readPlatform(p,await loadState(),forceGrades)}catch(e){if(p==='cs135'||!/signed.out|sign.in|session.unreadable|(?:^|\D)401(?:\D|$)/i.test(e instanceof Error?e.message:String(e)))throw e;await mutateState(s=>fence.current(p,token)?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:'page'}}}:s);await chrome.tabs.update(tabId,{url:urls[p]});await waitForTab(tabId);await autoLogin(p,tabId);return readPlatform(p,await loadState(),forceGrades)}})(),180000);
-  await mutateState(s=>fence.current(p,token)?applySnapshot(s,p,result.entries,result.courses,{status:'ok',at:new Date().toISOString(),count:result.entries.length,identity:result.identity,error:result.warning,...(p==='learn'?{gradesAt:result.gradesAt,issues:result.issues}:{})}):s);
+  await mutateState(s=>fence.current(p,token)?applySnapshot(s,p,result.entries,result.courses,{status:'ok',at:new Date().toISOString(),count:result.entries.length,identity:result.identity,error:result.warning,...(p==='learn'?{gradesAt:result.gradesAt,issues:result.issues,courseReadAt:result.courseReadAt}:{})}):s);
   if(p==='crowdmark'&&fence.current(p,token)&&needsGradeRefresh((await loadState()).sources[p]?.gradesAt,forceGrades)){
    await mutateState(s=>fence.current(p,token)?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:'grades'}}}:s);
    try{
@@ -51,8 +51,8 @@ async function runSync(p:Exclude<Platform,'manual'>,forceGrades:boolean){
     await mutateState(s=>{
      if(!fence.current(p,token)||s.sources[p]?.status!=='ok')return s;
      const byUrl=new Map(grades.entries.map(e=>[e.url,e]));
-     const entries=s.entries.map(e=>{if(e.platform!==p)return e;const grade=byUrl.get(e.url);if(!grade)return e;byUrl.delete(e.url);return {...e,scorePercent:grade.scorePercent,gradeStatus:grade.gradeStatus}});
-     entries.push(...byUrl.values());return {...s,entries,courses:[...new Map([...s.courses,...grades.courses].map(c=>[c.id,c])).values()],sources:{...s.sources,[p]:{...s.sources[p],count:entries.filter(e=>e.platform===p&&!e.gone).length,gradesAt:grades.warning?undefined:new Date().toISOString(),error:grades.warning}}};
+     const entries=s.entries.map(e=>{if(e.platform!==p)return e;const grade=byUrl.get(e.url);if(!grade)return e;byUrl.delete(e.url);return {...e,scorePercent:grade.scorePercent,gradeStatus:grade.gradeStatus,gradeText:grade.gradeText,gradeVerifiedAt:grade.readState==='retained'?e.gradeVerifiedAt:new Date().toISOString(),gradeReadState:grade.readState||'fresh',verifiedAt:grade.readState==='retained'?e.verifiedAt:new Date().toISOString(),readState:grade.readState||'fresh'}});
+     entries.push(...[...byUrl.values()].map(e=>({...e,gradeVerifiedAt:e.readState==='retained'?e.gradeVerifiedAt:new Date().toISOString(),gradeReadState:e.readState||'fresh' as const})));return {...s,entries,courses:[...new Map([...s.courses,...grades.courses].map(c=>[c.id,c])).values()],sources:{...s.sources,[p]:{...s.sources[p],count:entries.filter(e=>e.platform===p&&!e.gone).length,gradesAt:grades.warning?undefined:new Date().toISOString(),error:grades.warning}}};
     });
    }catch(e){await mutateState(s=>fence.current(p,token)&&s.sources[p]?.status==='ok'?{...s,sources:{...s.sources,[p]:{...s.sources[p],error:'crowdmark-grades-unavailable: '+(e instanceof Error?e.message:String(e))}}}:s)}
   }
@@ -61,7 +61,7 @@ async function runSync(p:Exclude<Platform,'manual'>,forceGrades:boolean){
 }
 async function notifyExamChanges(){const state=await loadState();for(const {change,entry,key} of pendingExamChanges(state)){await chrome.notifications.create(key,{type:'basic',iconUrl:'icon.png',title:`${entry.course} ${entry.title}`,message:state.settings.locale==='zh-CN'?'考试时间、教室或座位有更新，请打开 WatDesk 核对。':'Exam time, room or seat changed. Open WatDesk to review.'});await mutateState(s=>({...s,sent:{...s.sent,[key]:change.at}}))}}
 let notifying=false;
-async function notify(){if(notifying)return;notifying=true;try{await notifyExamChanges();const s=await loadState();for(const r of planReminders(s,new Date().toISOString())){await mutateState(state=>({...state,sent:{...state.sent,[r.key]:new Date().toISOString()}}));await chrome.notifications.create(r.key,{type:'basic',iconUrl:'icon.png',title:`${r.entry.course} ${r.entry.title}`,message:s.settings.locale==='zh-CN'?`${r.entry.type==='exam'?'考试将在':'任务将在'} ${r.lead} 分钟${r.entry.type==='exam'?'后开始':'后截止'}。`:`${r.entry.type==='exam'?'Exam':'Deadline'} within ${r.lead} minutes.`})}}finally{notifying=false}}
+async function notify(){if(notifying)return;notifying=true;try{await notifyExamChanges();const s=await loadState();for(const r of planReminders(s,new Date().toISOString())){await chrome.notifications.create(r.key,{type:'basic',iconUrl:'icon.png',title:`${r.entry.course} ${r.entry.title}`,message:s.settings.locale==='zh-CN'?`${r.entry.category==='class'?'课程将在':r.entry.type==='exam'?'考试将在':'任务将在'} ${r.lead} 分钟${r.entry.type==='exam'?'后开始':'后截止'}。`:`${r.entry.category==='class'?'Class':r.entry.type==='exam'?'Exam':'Deadline'} within ${r.lead} minutes.`});await mutateState(state=>({...state,sent:{...state.sent,[r.key]:new Date().toISOString()}}))}}finally{notifying=false}}
 async function handle(msg:any){await ready;switch(msg.type){
  case 'refreshOnOpen':void refreshOnOpen(msg.force===true).catch(()=>{});return {ok:true};
  case 'state':return loadState();
@@ -72,7 +72,7 @@ async function handle(msg:any){await ready;switch(msg.type){
  case 'delete':return mutateState(s=>({...s,entries:s.entries.filter(e=>!(e.id===msg.id&&e.platform==='manual'))}));
  case 'ics':return exportIcs(await loadState());
  case 'backup':return JSON.stringify(await loadState(),null,2);
- case 'restore':{const data=validateBackup(msg.text);fence.invalidate();return mutateState(()=>data)}
+ case 'restore':{const data=validateBackup(msg.text);fence.invalidate();return mutateState(()=>recoverInterrupted(data))}
  case 'clear':fence.invalidate();return mutateState(s=>emptyState(s.settings.locale));
  case 'clearSource':if(!platforms.includes(msg.platform))throw Error('platform');fence.invalidate(msg.platform);return mutateState(s=>clearSource(s,msg.platform));
  case 'testNotification':{const s=await loadState();await chrome.notifications.create({type:'basic',iconUrl:'icon.png',title:'WatDesk',message:s.settings.locale==='zh-CN'?'考试与任务提醒已准备就绪。':'Your exam and task reminders are ready.'});return {ok:true}}
@@ -81,7 +81,7 @@ async function handle(msg:any){await ready;switch(msg.type){
 chrome.runtime.onMessage.addListener((msg,sender,respond)=>{if(sender.id!==chrome.runtime.id)return false;if(sender.tab){if(msg?.type==='crowdmark:page'&&sender.tab.url?.startsWith('https://app.crowdmark.com/')){void ready.then(async()=>{const state=await loadState();if(!openedRun&&state.sources.crowdmark?.status!=='ok'&&await chrome.permissions.contains({origins:[origins.crowdmark]}))void sync('crowdmark')});respond({ok:true});}return false;}handle(msg).then(value=>respond({ok:true,value})).catch(e=>respond({ok:false,error:e.message||String(e)}));return true});
 chrome.runtime.onInstalled.addListener(()=>{chrome.sidePanel.setPanelBehavior({openPanelOnActionClick:true});chrome.alarms.create('reminders',{periodInMinutes:1});chrome.alarms.create('sync',{periodInMinutes:30});});
 chrome.runtime.onStartup.addListener(()=>{chrome.alarms.create('reminders',{periodInMinutes:1});chrome.alarms.create('sync',{periodInMinutes:30})});
-chrome.alarms.onAlarm.addListener(alarm=>{if(alarm.name==='reminders')void notify().catch(()=>{});else if(alarm.name==='sync')void (async()=>{for(const p of enabledPlatforms(await loadState()))if(await chrome.permissions.contains({origins:[origins[p]]}))void sync(p)})()});
+chrome.alarms.onAlarm.addListener(alarm=>{if(alarm.name==='reminders')void notify().catch(()=>{});else if(alarm.name==='sync')void (async()=>{await refreshOnOpen(false)})()});
 
 // Returning from school sign-in resumes the pending queue without another Refresh click.
 chrome.tabs?.onUpdated?.addListener((_id,change,tab)=>{if(change.status!=='complete'||!tab.url||openedRun)return;const p=platforms.find(p=>p!=='cs135'&&tab.url?.startsWith(urls[p]));if(!p)return;void ready.then(async()=>{const status=(await loadState()).sources[p];if(status?.status==='error'&&/sign.in|signed.out|session.unreadable/i.test(status.error||''))void refreshOnOpen().catch(()=>{})})});

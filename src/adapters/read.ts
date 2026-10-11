@@ -10,32 +10,39 @@ import {sourceTab} from './source-tabs';
 import {parseLearnGrades,parseLearnExams} from './learn-extras';
 import {needsGradeRefresh} from '../core/presentation';
 import {readLearnCourses} from './learn-batch';
+import {courseVisible} from '../core/academic';
 import {toolIssues,readLearnGradeBatch} from './learn-availability';
 type ReaderPlatform=Exclude<Platform,'manual'>;
 export async function relay(p:ReaderPlatform,path:string,tabId?:number){
  if(!((p==='learn'&&path.startsWith('/d2l/'))||(p==='crowdmark'&&path.startsWith('/api/v2/student/')))||path.startsWith('//'))throw Error('path');
  const id=tabId??await sourceTab(p);await waitForTab(id);const [result]=await retryFrame(()=>chrome.scripting.executeScript({target:{tabId:id},func:async(path:string)=>{try{const res=await fetch(path,{credentials:'include',signal:AbortSignal.timeout(20000)});const type=res.headers.get('content-type')||'';let json;let body='';let parseError;try{const text=await res.text();if(type.includes('json'))json=JSON.parse(text);else body=text.slice(0,16000)}catch(e){parseError=String(e)}return {status:res.status,type,json,body,parseError,redirected:res.redirected,loginRedirect:!res.url.startsWith(location.origin+'/d2l/')&&path.startsWith('/d2l/')}}catch(e){return {status:0,error:String(e)}}},args:[path]}),()=>waitForTab(id));return result?.result;
 }
-export async function readPlatform(p:ReaderPlatform,state:AppState,forceGrades=false):Promise<{entries:Entry[];courses:Course[];identity?:string;warning?:string;gradesAt?:string;issues?:LearnReadIssue[]}>{
+export async function readPlatform(p:ReaderPlatform,state:AppState,forceGrades=false):Promise<{entries:Entry[];courses:Course[];identity?:string;warning?:string;gradesAt?:string;issues?:LearnReadIssue[];courseReadAt?:Record<string,string>}>{
  if(!platforms.includes(p))throw Error('platform');if(!(await chrome.permissions.contains({origins:[origins[p]]})))throw Error('permission');
  if(p==='learn'){
   const tabId=await sourceTab('learn');
   const source=new LiveSource({school:'uwaterloo'},{relay:(_base:string,path:string)=>relay('learn',path,tabId)});
   const session=await source.checkSession();if(!session.signedIn)throw Error(session.reason||'signed-out');
-  const courses=await source.listCourses();const entries:Entry[]=[];let failed=0;
+  const listed=await source.listCourses();
+  const courseReadAt={...state.sources.learn?.courseReadAt};const stamp=new Date().toISOString();
+  const visible=listed.filter((c:any)=>courseVisible(c.code,state,c.id));
+  const courses=visible.filter((c:any)=>forceGrades||!courseReadAt[c.id]||Date.now()-Date.parse(courseReadAt[c.id])>=600000);
+  const cachedIds=new Set(listed.filter((c:any)=>!courses.includes(c)).map((c:any)=>String(c.id)));
+  const entries:Entry[]=state.entries.filter(e=>e.platform==='learn'&&!e.gradeOnly&&!e.gone&&cachedIds.has(e.readerCourseId||'')).map(e=>({...e,readState:'retained' as const}));let failed=0;
   const results=await readLearnCourses<any,any[]>(source,courses);
-  for(const [index,result] of results.entries()){if(result.status==='rejected'){if(result.reason?.code==='signed-out'||result.reason?.status===401)throw Error('signed-out');failed++;continue}for(const i of result.value)entries.push(fromReader(i,courses[index].code,'learn'))}
+  for(const [index,result] of results.entries()){if(result.status==='rejected'){if(result.reason?.code==='signed-out'||result.reason?.status===401)throw Error('signed-out');failed++;continue}courseReadAt[courses[index].id]=stamp;for(const i of result.value)entries.push(fromReader(i,courses[index].code,'learn'))}
   if(failed)throw Error(`partial:${failed}`);
-  const exams=parseLearnExams(source.calendar?.events||[],courses);const examIds=new Set(exams.map(e=>e.id.split(':').at(-1)));
+  const exams=parseLearnExams(source.calendar?.events||[],visible);const examIds=new Set(exams.map(e=>e.id.split(':').at(-1)));
   const deadlines=entries.filter(e=>!examIds.has(e.id.match(/:content:cal(\d+)$/)?.[1]||''));deadlines.push(...exams);
   const previousGrades=state.entries.filter(e=>e.platform==='learn'&&e.gradeOnly&&!e.gone);let gradesAt=state.sources.learn?.gradesAt;
-  const issues=toolIssues(source.report.courses);
+  const cachedCodes=new Set(listed.filter((c:any)=>cachedIds.has(String(c.id))).map((c:any)=>c.code));
+  const issues=[...toolIssues(source.report.courses),...(state.sources.learn?.issues||[]).filter(i=>i.tool!=='grades'&&cachedCodes.has(i.course))];
   if(needsGradeRefresh(gradesAt,forceGrades)){
-   const grades=await readLearnGradeBatch(source,courses,previousGrades);deadlines.push(...grades.entries);issues.push(...grades.issues);
+   const grades=await readLearnGradeBatch(source,visible,previousGrades);deadlines.push(...grades.entries,...previousGrades.filter(e=>!visible.some((c:any)=>c.id===e.readerCourseId)).map(e=>({...e,readState:'retained' as const})));issues.push(...grades.issues);
    gradesAt=grades.retry?undefined:new Date().toISOString();
-  }else{deadlines.push(...previousGrades);issues.push(...state.sources.learn?.issues?.filter(i=>i.tool==='grades')||[])}
+  }else{deadlines.push(...previousGrades.map(e=>({...e,readState:'retained' as const})));issues.push(...state.sources.learn?.issues?.filter(i=>i.tool==='grades')||[])}
   const failures=issues.filter(i=>i.kind==='failed');
-  return {entries:retainIncomplete(state.entries.filter(e=>!e.gradeOnly),deadlines,source.readOk),gradesAt,issues,courses:courses.map((c:any)=>({id:`learn:${c.id}`,code:c.code,name:c.name||c.code})),identity:session.student?.name,warning:failures.length?`learn-partial: ${failures.map(i=>`${i.course}/${i.tool}/${i.status||i.code}`).join('; ')}`:undefined};
+  return {entries:retainIncomplete(state.entries.filter(e=>!e.gradeOnly&&!e.gone),[...new Map(deadlines.map(e=>[e.id,e])).values()],source.readOk),gradesAt,issues,courseReadAt,courses:listed.map((c:any)=>({id:`learn:${c.id}`,code:c.code,name:c.name||c.code,term:(c.name||'').match(/(?:Fall|Winter|Spring)\s+\d{4}/i)?.[0]})),identity:session.student?.name,warning:failures.length?`learn-partial: ${failures.map(i=>`${i.course}/${i.tool}/${i.status||i.code}`).join('; ')}`:undefined};
  }
  if(p==='crowdmark')return readCrowdmarkApi(state);
  if(p==='cs135'){const r=await fetch(urls.cs135+'calendar/index.html',{signal:AbortSignal.timeout(20000),cache:'no-store'});if(!r.ok)throw Error('cs135-http:'+r.status);return {entries:parseCs135Html(await r.text()),courses:[{id:'cs135:web',code:'CS 135',name:'Designing Functional Programs'}]}}

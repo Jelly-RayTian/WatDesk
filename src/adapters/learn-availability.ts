@@ -21,7 +21,7 @@ export async function readLearnGradeBatch(source:{versions:{le:string};paged:(pa
  await Promise.all(Array.from({length:Math.min(2,courses.length)},async()=>{
   for(;;){const c=courses[cursor++];if(!c)return;
    try{const rows=await source.paged(`/d2l/api/le/${source.versions.le}/${c.orgUnitId}/grades/values/myGradeValues/`);entries.push(...parseLearnGrades(rows,c.code,c.id))}
-   catch(e){const issue=learnIssue(c.code,'grades',e);if(issue.code==='signed-out'||issue.status===401)throw Error('signed-out');issues.push(issue);entries.push(...previous.filter(e=>e.readerCourseId===c.id))}
+   catch(e){const issue=learnIssue(c.code,'grades',e);if(issue.code==='signed-out'||issue.status===401)throw Error('signed-out');issues.push(issue);entries.push(...previous.filter(e=>e.readerCourseId===c.id).map(e=>({...e,readState:'retained' as const})))}
   }
  }));
  return {entries,issues,retry:issues.some(i=>i.kind==='failed')};

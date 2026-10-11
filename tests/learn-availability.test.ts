@@ -5,11 +5,11 @@ const courses=[{id:'1',orgUnitId:1,code:'MATH 135'},{id:'2',orgUnitId:2,code:'MA
 const old={id:'learn:grade:old',platform:'learn',readerCourseId:'1',gradeOnly:true,course:'MATH 135',title:'Old score'} as Entry;
 it('treats restricted and absent grade endpoints as availability notices, retaining saved scores',async()=>{
  const result=await readLearnGradeBatch({versions:{le:'1.82'},paged:async()=>{throw Object.assign(Error('restricted'),{code:'forbidden',status:403})}},courses,[old]);
- expect(result.entries).toEqual([old]);expect(result.issues).toHaveLength(2);expect(result.issues[0]).toMatchObject({course:'MATH 135',tool:'grades',kind:'unavailable',code:'forbidden',status:403});expect(result.retry).toBe(false);
+ expect(result.entries).toEqual([{...old,readState:'retained'}]);expect(result.issues).toHaveLength(2);expect(result.issues[0]).toMatchObject({course:'MATH 135',tool:'grades',kind:'unavailable',code:'forbidden',status:403});expect(result.retry).toBe(false);
 });
 it('does not disguise network and rate-limit failures as unreleased grades',async()=>{
  const result=await readLearnGradeBatch({versions:{le:'1.82'},paged:async(path:string)=>{if(path.includes('/1/'))throw Object.assign(Error('request'),{code:'http',status:429});return []}},courses,[old]);
- expect(result.entries).toEqual([old]);expect(result.retry).toBe(true);expect(result.issues[0]).toMatchObject({kind:'failed',status:429});
+ expect(result.entries).toEqual([{...old,readState:'retained'}]);expect(result.retry).toBe(true);expect(result.issues[0]).toMatchObject({kind:'failed',status:429});
 });
 it('propagates expired sessions for automatic sign-in recovery',async()=>{
  await expect(readLearnGradeBatch({versions:{le:'1.82'},paged:async()=>{throw Object.assign(Error('expired'),{code:'signed-out',status:401})}},courses,[old])).rejects.toThrow('signed-out');

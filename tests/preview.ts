@@ -1,4 +1,5 @@
 // Development only. Not included in either production build entry point.
+import {validateBackup} from '../src/core/util';
 import {enabledPlatforms} from '../src/core/onboarding';
 import {parseLearnGrades,parseLearnExams} from '../src/adapters/learn-extras';
 import {emptyState} from '../src/domain';
@@ -30,6 +31,12 @@ if(new URLSearchParams(location.search).has('tools')){
 }
 if(new URLSearchParams(location.search).has('availability')){s.settings.onboardingComplete=true;s.sources.learn.issues=[{course:'MATH 135',tool:'grades',kind:'unavailable',code:'forbidden',status:403},{course:'MATH 137',tool:'quizzes',kind:'unavailable',code:'not-found',status:404}]}
 if(new URLSearchParams(location.search).has('availabilitymany')){s.settings.onboardingComplete=true;s.sources.learn.issues=[...['dropbox','quizzes'].map(tool=>({course:'MATH 135',tool,kind:'unavailable' as const,code:'forbidden',status:403})),...['dropbox','discussions','calendar','grades'].map(tool=>({course:'Orientation',tool,kind:'unavailable' as const,code:'forbidden',status:403})),{course:'MATH 137',tool:'quizzes',kind:'failed',code:'network'}]}
+if(new URLSearchParams(location.search).has('polish')){
+ s.settings.onboardingComplete=true;s.settings.theme='light';
+ s.settings.classMeetings=[{id:'sample-class',course:'MATH 135',title:'Lecture',weekday:new Date().getDay(),start:'18:30',end:'19:50',location:'MC 2065',leadMinutes:15,enabled:true}];
+ s.courses=[{id:'learn:1',code:'MATH 135',name:'Algebra',term:'Fall 2026'},{id:'learn:2',code:'MATH 137',name:'Calculus',term:'Fall 2026'}];
+ s.entries=s.entries.map(e=>({...e,verifiedAt:new Date().toISOString(),gradeText:e.scorePercent==null?undefined:`${e.scorePercent/5} / 20`}));
+}
 // Opt-in observation of the native animation during local visual checks.
 if(new URLSearchParams(location.search).has('motioncheck')){
  const nativeAnimate=Element.prototype.animate;
@@ -54,5 +61,5 @@ const listeners=new Set<any>();function publish(){listeners.forEach(fn=>fn({watd
   s.sources[p]={...s.sources[p],phase:undefined,durationMs:3500,status:'ok',at:new Date().toISOString()};s.syncRun.completed.push(p);s.syncRun.active=undefined;publish();
  }
  s.syncRun!.finished=true;publish();})();return {ok:true,value:true}
-};case 'open':return {ok:true,value:true};case 'sync':s.sources[m.platform]={...s.sources[m.platform],status:'ok',phase:undefined,error:undefined,durationMs:1800,at:new Date().toISOString()};break;case 'settings':s.settings={...s.settings,...m.patch};break;case 'overlay':for(const id of m.ids||[m.id])s.overlays[id]={...s.overlays[id],...m.patch};break;case 'manual':s.entries=[...s.entries.filter(e=>e.id!==m.entry.id),m.entry];break;case 'delete':s.entries=s.entries.filter(e=>e.id!==m.id);break;default:return {ok:false,error:'Development preview: live connections are available in the extension.'}}publish();return {ok:true,value:true}}},tabs:{create:()=>{}},permissions:{request:async()=>true,contains:async()=>true}};
+};case 'backup':return {ok:true,value:JSON.stringify(s,null,2)};case 'restore':s=validateBackup(m.text);break;case 'open':return {ok:true,value:true};case 'sync':s.sources[m.platform]={...s.sources[m.platform],status:'ok',phase:undefined,error:undefined,durationMs:1800,at:new Date().toISOString()};break;case 'settings':s.settings={...s.settings,...m.patch};break;case 'overlay':for(const id of m.ids||[m.id])s.overlays[id]={...s.overlays[id],...m.patch};break;case 'manual':s.entries=[...s.entries.filter(e=>e.id!==m.entry.id),m.entry];break;case 'delete':s.entries=s.entries.filter(e=>e.id!==m.id);break;default:return {ok:false,error:'Development preview: live connections are available in the extension.'}}publish();return {ok:true,value:true}}},tabs:{create:()=>{}},permissions:{request:async()=>true,contains:async()=>true}};
 void import('../src/ui/main');

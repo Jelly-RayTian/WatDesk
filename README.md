@@ -15,13 +15,13 @@ Independent bilingual academic workspace for University of Waterloo. Edge Manife
 - Learn deadlines, released grades and explicitly timed calendar exams; Crowdmark deadlines, submission state and historical grades.
 - Odyssey assessment dates, duration, room and seat; unpublished times remain unknown.
 - CS135 calendar deadlines (only with the website's explicit 9pm rule), quizzes/midterm, lecture-note and assignment links.
-- Chinese/English, light/dark/system theme; month/week calendar, exam overlaps.
+- Chinese/English, light/dark/system theme; month/week/next-seven-days calendar with course filters, exam markers and date-specific personal items.
 - Personal tasks, checkmarks and notes; conservative cross-platform task merging with source links and an opt-out; platform submission and personal completion remain separate.
-- Course visibility controls; hidden courses are excluded from coursework views and reminders.
+- Term selection, orientation-module hiding and course visibility controls; hidden courses are excluded from coursework views and reminders.
 - Per-course grade trends, manual assessment weights, graded-weight averages and target-score estimates. Unreleased grades are not counted as zero.
 - Exam countdowns and time conflicts; new exam time, room or seat changes trigger notifications and remain in the update history.
-- Browser reminders, course muting, calendar ICS export, JSON backup and restore.
-- Failed reads retain the previous snapshot. Account name changes block replacement until source cache is cleared.
+- Course-specific deadline/exam reminders, manually entered weekly classes, course muting, calendar ICS export (including the next 90 days of classes), full JSON backup/restore and a self-contained offline HTML viewer.
+- Record-level verification times distinguish saved or retained data from freshly checked data. Learn skips hidden courses and reuses course reads for 10 minutes; manual refresh bypasses this cache. Failed reads retain the previous snapshot. Account name changes block replacement until source cache is cleared.
 
 Checking a task is personal bookkeeping; it does not submit anything to the university. Reminder delivery requires Edge to be running and Windows to allow notifications. Opening shows saved data immediately and checks for updates in the background with short freshness windows. Sync also runs every 30 minutes while Edge runs; manual refresh forces a new read. Grade estimates follow manually entered weights and do not model drop rules or pass-the-final conditions. Platform APIs/page layouts may change. Course content and external resource titles retain their original language.
 

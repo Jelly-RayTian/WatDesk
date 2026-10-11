@@ -1,7 +1,8 @@
 import type {Entry,Locale} from '../domain';
-export const entryKinds=['assignment','quiz','lab','discussion','reading','content','exam','task'] as const;
+export const entryKinds=['class','assignment','quiz','lab','discussion','reading','content','exam','task'] as const;
 export type EntryKind=typeof entryKinds[number];
 export function entryKind(e:Pick<Entry,'type'|'title'|'category'>):EntryKind{
+ if(e.category==='class')return 'class';
  if(e.type==='exam')return 'exam';
  if(e.category&&entryKinds.includes(e.category)&&e.category!=='content')return e.category;
  const title=e.title;
@@ -13,7 +14,7 @@ export function entryKind(e:Pick<Entry,'type'|'title'|'category'>):EntryKind{
  if(/\b(assignment|problem set|homework)\b|^A\d{2}\b|作业/i.test(title))return 'assignment';
  return e.category==='content'?'content':'task';
 }
-export function kindLabel(kind:EntryKind,locale:Locale){return (locale==='zh-CN'?{assignment:'作业',quiz:'测验',lab:'实验',discussion:'讨论',reading:'阅读',content:'课程内容',exam:'考试',task:'任务'}:{assignment:'Assignment',quiz:'Quiz',lab:'Lab',discussion:'Discussion',reading:'Reading',content:'Course content',exam:'Exam',task:'Task'})[kind]}
+export function kindLabel(kind:EntryKind,locale:Locale){return (locale==='zh-CN'?{class:'上课',assignment:'作业',quiz:'测验',lab:'实验',discussion:'讨论',reading:'阅读',content:'课程内容',exam:'考试',task:'任务'}:{class:'Class',assignment:'Assignment',quiz:'Quiz',lab:'Lab',discussion:'Discussion',reading:'Reading',content:'Course content',exam:'Exam',task:'Task'})[kind]}
 const colors=['#d6baf1','#a9d1fc','#b2e0bf','#ffd09e','#f1b9cf','#b1e0de','#e1c6ae','#c8c5f4','#e5dd9d','#ffc0b3','#b9dbef','#d2dea6'];
 const reserved:Record<string,number>={'CS 135':0,'MATH 135':1,'MATH 137':2,'ECON 101':3,'ENGL 119':4};
 export function courseColors(courses:string[]):Record<string,string>{
