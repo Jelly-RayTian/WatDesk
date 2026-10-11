@@ -2,6 +2,7 @@ import {copyFile,mkdir} from 'node:fs/promises';
 import {deflateSync} from 'node:zlib';
 await mkdir('dist',{recursive:true});
 await copyFile('src/vendor/watnow/content/crowdmark-bridge.js','dist/crowdmark-bridge.js');
+await copyFile('src/content/school-login.js','dist/school-login.js');
 await copyFile('manifest.json','dist/manifest.json');
 await copyFile('THIRD_PARTY_NOTICES.md','dist/THIRD_PARTY_NOTICES.md');
 await copyFile('src/vendor/watnow/LICENSE','dist/WATnow-LICENSE.txt');

@@ -1,3 +1,4 @@
+vi.mock('../src/background/school-login',()=>({configureSchoolLogin:async()=>{}}));
 import {it,expect,vi,beforeEach} from 'vitest';
 import {emptyState} from '../src/domain';
 const mocked=vi.hoisted(()=>({read:vi.fn(),tab:vi.fn().mockResolvedValue(1),grades:vi.fn()}));

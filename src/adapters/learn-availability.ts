@@ -32,6 +32,6 @@ export function learnToolLabel(tool:string,zh:boolean){
 }
 export function formatLearnIssue(issue:LearnReadIssue,zh:boolean){
  const tool=learnToolLabel(issue.tool,zh);
- const reason=issue.status===403?(zh?'当前账号无权读取此接口':'This account cannot access this endpoint'):issue.status===404?(zh?'平台未返回此课程的数据或接口':'No course data or endpoint was returned'):zh?'读取异常，可刷新重试':'Read failed; refresh to retry';
+ const reason=issue.status===403?(zh?'课程未启用此工具，或接口访问受限':'The course tool may be disabled or its endpoint restricted'):issue.status===404?(zh?'平台未返回此课程的数据或接口':'No course data or endpoint was returned'):zh?'读取异常，可刷新重试':'Read failed; refresh to retry';
  return `${issue.course} · ${tool}：${reason} (${issue.status?'HTTP '+issue.status:issue.code})`;
 }

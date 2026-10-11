@@ -6,6 +6,7 @@ import {readPlatform} from '../adapters/read';
 import {withTimeout,recoverInterrupted} from '../core/sync';
 import {SyncFence} from '../core/fence';
 import {sourceTab} from '../adapters/source-tabs';
+import {configureSchoolLogin} from './school-login';
 import {autoLogin} from '../adapters/login';
 import {needsGradeRefresh} from '../core/presentation';
 import {waitForTab} from '../core/sync';
@@ -15,6 +16,7 @@ import {canReuseSource} from '../core/refresh-policy';
 let syncTail:Promise<void>=Promise.resolve();
 const fence=new SyncFence();const syncJobs=new Map<string,Promise<void>>();
 const ready=mutateState(recoverInterrupted);
+void ready.then(s=>configureSchoolLogin(s.settings.schoolAutoNext===true)).catch(()=>{});
 let openedRun:Promise<unknown>|undefined;
 async function refreshOnOpen(forceGrades=false){
  await ready;if(openedRun)return openedRun;
@@ -66,14 +68,15 @@ async function handle(msg:any){await ready;switch(msg.type){
  case 'refreshOnOpen':void refreshOnOpen(msg.force===true).catch(()=>{});return {ok:true};
  case 'state':return loadState();
  case 'sync':if(platforms.includes(msg.platform)){void sync(msg.platform);return {ok:true}}throw Error('platform');
+ case 'schoolLogin':{if(typeof msg.enabled!=='boolean')throw Error('invalid');await configureSchoolLogin(msg.enabled);return mutateState(s=>({...s,settings:{...s.settings,schoolAutoNext:msg.enabled}}))}
  case 'settings':if(msg.patch?.cs135Enabled===false)fence.invalidate('cs135');return mutateState(s=>{const settings={...s.settings,...msg.patch};const next=validateBackup(JSON.stringify({...s,settings}));if(msg.patch?.cs135Enabled===false&&next.sources.cs135)next.sources.cs135={...next.sources.cs135,phase:undefined,status:next.sources.cs135.at?'ok':'idle',error:undefined};return next});
  case 'overlay':return mutateState(s=>{const ids=Array.isArray(msg.ids)?msg.ids:[msg.id];const overlays={...s.overlays};for(const id of ids)if(s.entries.some(e=>e.id===id))overlays[id]={...overlays[id],...msg.patch};return {...s,overlays}});
  case 'manual':return mutateState(s=>{const entry=msg.entry as Entry;if(entry.platform!=='manual'||!entry.title.trim()||!safeUrl(entry.url)||!['exam','task'].includes(entry.type))throw Error('invalid');const next={...s,entries:[...s.entries.filter(e=>e.id!==entry.id),entry]};return validateBackup(JSON.stringify(next))});
  case 'delete':return mutateState(s=>({...s,entries:s.entries.filter(e=>!(e.id===msg.id&&e.platform==='manual'))}));
  case 'ics':return exportIcs(await loadState());
  case 'backup':return JSON.stringify(await loadState(),null,2);
- case 'restore':{const data=validateBackup(msg.text);fence.invalidate();return mutateState(()=>recoverInterrupted(data))}
- case 'clear':fence.invalidate();return mutateState(s=>emptyState(s.settings.locale));
+ case 'restore':{const data=validateBackup(msg.text);fence.invalidate();await configureSchoolLogin(data.settings.schoolAutoNext===true).catch(()=>{});return mutateState(()=>recoverInterrupted(data))}
+ case 'clear':fence.invalidate();await configureSchoolLogin(false);return mutateState(s=>emptyState(s.settings.locale));
  case 'clearSource':if(!platforms.includes(msg.platform))throw Error('platform');fence.invalidate(msg.platform);return mutateState(s=>clearSource(s,msg.platform));
  case 'testNotification':{const s=await loadState();await chrome.notifications.create({type:'basic',iconUrl:'icon.png',title:'WatDesk',message:s.settings.locale==='zh-CN'?'考试与任务提醒已准备就绪。':'Your exam and task reminders are ready.'});return {ok:true}}
  case 'open':if(platforms.includes(msg.platform)){const id=await sourceTab(msg.platform,true);await waitForTab(id);await autoLogin(msg.platform,id);return {ok:true}}throw Error('platform');

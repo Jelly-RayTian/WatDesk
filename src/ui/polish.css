@@ -129,4 +129,6 @@ textarea{border-radius:20px}
 
 .next-classes article{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px 12px;background:transparent;padding:0;margin-top:10px}.next-classes article>div{align-content:center}.next-classes article strong{margin:0;font-size:12px;align-self:center}.next-classes article small{margin:0;grid-column:1/-1}.next-classes h2{margin-bottom:11px}.settings-section label.check-label{flex-direction:row;align-items:center}
 
-@media(max-width:360px){.shell .topbar{height:auto;min-height:100px;flex-wrap:wrap;gap:8px;padding-bottom:10px}.shell .topbar>.toolbar{width:100%;justify-content:space-between;gap:6px}.shell .topbar .add-top{width:36px;padding:8px;min-width:36px}.next-classes article{grid-template-columns:minmax(0,1fr)}.next-classes article small{grid-column:1}}
+@media(max-width:430px){.shell .topbar{height:auto;min-height:100px;flex-wrap:wrap;gap:8px;padding-bottom:10px}.shell .topbar>.toolbar{width:100%;justify-content:space-between;gap:6px}.shell .topbar .add-top{width:36px;padding:8px;min-width:36px}.next-classes article{grid-template-columns:minmax(0,1fr)}.next-classes article small{grid-column:1}}
+
+.topbar .workspace-label,.source-copy{min-width:0}.source-copy small,.learn-read-details,.source-failure code{overflow-wrap:anywhere}.shell .topbar>.toolbar{flex-shrink:0}
