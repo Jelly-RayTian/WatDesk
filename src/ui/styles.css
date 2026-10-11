@@ -95,3 +95,62 @@
  .button,.icon-button,.sidebar nav button,.course-filters button,.tabs button,.entry{transition:none}
  .button:active,.icon-button:active,.sidebar nav button:active,.course-filters button:active{transform:none}
 }
+
+/* Source diagnostics stay below their header, even when expanded. */
+.source-row{display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:start;column-gap:11px;row-gap:8px}
+.source-row>.icon-button{align-self:start}
+.source-row>.learn-read-details,.source-row>.source-failure{grid-column:1/-1;width:100%;min-width:0}
+.learn-read-details{margin:0;font-size:12px;line-height:1.6}
+.learn-read-details summary{color:var(--muted);font-size:11px}
+.learn-read-details p{font-size:11px;margin:8px 0 12px}
+.learn-issue-groups{list-style:none;padding:0!important;margin:0}
+.learn-issue-groups li{padding:9px 0;border-top:1px solid var(--line)}
+.learn-issue-groups li>div{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.learn-issue-groups b{color:var(--ink);font-size:12px}
+.learn-issue-groups li>span,.learn-issue-groups small{display:block;font-size:11px}
+.issue-code{font-size:10px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.learn-read-details>a{display:inline-flex;align-items:center;gap:4px;font-size:11px;margin-top:8px}
+/* Seven columns remain visible in the extension side panel. */
+.calendar-toolbar{margin-bottom:12px;gap:8px;flex-wrap:wrap}
+.calendar-toolbar h2{margin:0}
+.calendar-view-switch{margin:0 0 16px;display:inline-flex}
+.calendar-weekdays{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));text-align:center;font-size:11px;color:var(--muted);padding:0 0 10px}
+.month-calendar .calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-radius:16px;background:var(--surface)}
+.month-calendar .calendar-day{padding:5px;min-height:125px;min-width:0;position:relative}
+.calendar-date{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;width:100%;border:0;background:transparent;color:var(--ink);min-height:42px;border-radius:9px;padding:4px;font-size:12px;cursor:pointer}
+.calendar-date strong{display:grid;place-items:center;min-width:25px;height:25px;border-radius:50%}
+.calendar-day.is-today .calendar-date strong{background:var(--yellow);color:#26344c}
+.calendar-day.selected .calendar-date{box-shadow:inset 0 0 0 2px var(--accent);background:var(--soft)}
+.calendar-day.outside .calendar-date{color:var(--muted)}
+.calendar-dots{display:none;align-items:center;justify-content:center;gap:3px;height:8px}
+.calendar-dots i{width:6px;height:6px;border-radius:50%;box-shadow:0 0 0 1px #28314b20}
+.calendar-dots small{font-size:10px;line-height:1}
+.calendar-agenda{margin-top:24px}
+.calendar-agenda h2{font-size:16px}
+.calendar-empty{padding:24px 16px;border-radius:16px;background:var(--surface);color:var(--muted);font-size:12px}
+.calendar-agenda .agenda-row{border-radius:12px;margin:8px 0;overflow-wrap:anywhere}
+@media(max-width:720px){
+ .month-calendar .calendar-day{min-height:60px;padding:3px}
+ .calendar-date{min-height:53px}
+ .calendar-dots{display:flex}
+ .calendar-cell-events{display:none}
+}
+@media(max-width:600px){
+ .grades .history-table{display:block;white-space:normal}
+ .history-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+ .history-table tbody{display:block;width:100%}
+ .history-table tbody tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(64px,auto);gap:7px 12px;padding:15px;border-bottom:1px solid var(--line);align-items:start}
+ .grades .history-table tbody tr>*{padding:0;border:0;min-width:0;overflow-wrap:anywhere}
+ .history-course{grid-column:1;grid-row:1}
+ .history-course .course-chip{white-space:normal;display:inline-block;font-size:11px}
+ .history-title{grid-column:1;grid-row:2;font-size:13px;line-height:1.5}
+ .history-table .score-value{grid-column:2;grid-row:1/3;text-align:right;font-size:17px;white-space:normal;max-width:100px}
+ .history-due{grid-column:1;grid-row:3;font-size:11px;color:var(--muted)}
+ .history-status{grid-column:1;grid-row:4;font-size:11px}
+ .history-link{grid-column:2;grid-row:3/5;justify-self:end}
+ .grades .course-summary{table-layout:fixed;white-space:normal;font-size:11px}
+ .grades .course-summary th,.grades .course-summary td{padding:10px 5px;overflow-wrap:anywhere}
+ .course-summary th:first-child{width:28%}
+ .course-summary .mean-cell{min-width:0}
+ .course-summary .mean-track{width:100%;min-width:0}
+}

@@ -26,9 +26,12 @@ export async function readLearnGradeBatch(source:{versions:{le:string};paged:(pa
  }));
  return {entries,issues,retry:issues.some(i=>i.kind==='failed')};
 }
-export function formatLearnIssue(issue:LearnReadIssue,zh:boolean){
+export function learnToolLabel(tool:string,zh:boolean){
  const names:Record<string,[string,string]>={grades:['成绩','Grades'],dropbox:['作业','Assignments'],quizzes:['测验','Quizzes'],discussions:['讨论','Discussions'],myItems:['待办列表','Task feed'],calendar:['日历','Calendar']};
- const tool=names[issue.tool]?.[zh?0:1]||issue.tool;
+ return names[tool]?.[zh?0:1]||tool;
+}
+export function formatLearnIssue(issue:LearnReadIssue,zh:boolean){
+ const tool=learnToolLabel(issue.tool,zh);
  const reason=issue.status===403?(zh?'当前账号无权读取此接口':'This account cannot access this endpoint'):issue.status===404?(zh?'平台未返回此课程的数据或接口':'No course data or endpoint was returned'):zh?'读取异常，可刷新重试':'Read failed; refresh to retry';
  return `${issue.course} · ${tool}：${reason} (${issue.status?'HTTP '+issue.status:issue.code})`;
 }

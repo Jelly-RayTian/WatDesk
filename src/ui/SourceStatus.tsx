@@ -2,12 +2,18 @@ import {useEffect,useState} from 'react';
 import {ArrowClockwise,ArrowSquareOut,Check,Warning} from '@phosphor-icons/react';
 import {platforms,type AppState,type Platform,type SyncStatus} from '../domain';
 import {fmt} from '../core/util';
-import {formatLearnIssue} from '../adapters/learn-availability';
+import {formatLearnIssue,learnToolLabel} from '../adapters/learn-availability';
 const label=(p:Platform)=>({learn:'Learn',crowdmark:'Crowdmark',odyssey:'Odyssey',cs135:'CS 135',manual:'Personal'}[p]);
 const phase=(s:SyncStatus|undefined,zh:boolean)=>s?.phase==='page'?(zh?'检查页面与登录':'Checking page and sign-in'):s?.phase==='grades'?(zh?'读取历史成绩':'Reading grade history'):(zh?'读取任务与安排':'Reading tasks and schedule');
 export function LearnReadDetails({status,zh,gradesOnly=false}:{status:SyncStatus|undefined;zh:boolean;gradesOnly?:boolean}){
  const issues=status?.issues?.filter(i=>!gradesOnly||i.tool==='grades');if(!issues?.length)return null;
- return <details className="learn-read-details"><summary>{zh?'部分课程数据暂不可读':'Some course data is unavailable'} · {issues.length}</summary><p>{zh?'已保留未能读取部分的历史记录。接口不可用不代表未提交或未公布，请到 Learn 核对。':'Saved records for unread sections are retained. Endpoint availability does not indicate submission or release status; check Learn.'}</p><ul>{issues.map((i,n)=><li key={n} className={i.kind==='failed'?'danger':''}>{formatLearnIssue(i,zh)}</li>)}</ul></details>;
+ const groups=new Map<string,typeof issues>();
+ for(const issue of issues){const key=JSON.stringify([issue.course,issue.status,issue.code,issue.kind]);groups.set(key,[...(groups.get(key)||[]),issue])}
+ return <details className="learn-read-details"><summary>{zh?'部分课程工具不可读':'Some course tools unavailable'} · {issues.length}</summary>
+ <p>{zh?'其余数据已更新，未读部分保留历史记录。403 表示接口拒绝访问，不代表未提交或没有成绩。':'Other data is updated; unread sections keep saved records. HTTP 403 means access was denied, not that work is unsubmitted or ungraded.'}</p>
+ <ul className="learn-issue-groups">{[...groups.entries()].map(([key,items])=>{const first=items[0];return <li key={key} className={first.kind==='failed'?'danger':''}><div><b>{first.course}</b><span className="issue-code">{first.status?'HTTP '+first.status:first.code}</span></div><span>{[...new Set(items.map(i=>learnToolLabel(i.tool,zh)))].join(zh?'、':', ')}</span>{first.status!==403&&<small>{formatLearnIssue(first,zh)}</small>}</li>})}</ul>
+ <a href="https://learn.uwaterloo.ca/d2l/home" target="_blank" rel="noreferrer">{zh?'到 Learn 核对':'Verify on Learn'} <ArrowSquareOut size={12}/></a></details>;
+
 }
 export function BackgroundSync({state,retry,details}:{state:AppState;retry:()=>void;details:()=>void}){
  const run=state.syncRun,zh=state.settings.locale==='zh-CN';
@@ -25,7 +31,7 @@ export function SourcePanel({state,retry,open,toggleCs135}:{state:AppState;toggl
   if(p==='cs135'&&!state.settings.cs135Enabled)return <div className="source-row" key={p}><div className="source-monogram">CS</div><div className="source-copy"><b>CS 135 · {zh?'可选':'Optional'}</b><small className="muted">{zh?'未启用，不会读取课程官网':'Disabled; course website is not read'}</small></div><button className="text-button" onClick={toggleCs135}>{zh?'启用':'Enable'}</button></div>;
   const s=state.sources[p],reading=s?.status==='syncing'||!!s?.phase;
   const seconds=reading?Math.max(0,Math.floor((now-Date.parse(s?.attempt||''))/1000)):s?.durationMs!=null?(s.durationMs/1000).toFixed(1):null;
-  return <div className="source-row" key={p}><div className="source-monogram">{p==='cs135'?'CS':label(p)[0]}</div><div className="source-copy"><b>{label(p)}</b>{p==='cs135'&&<button className="text-button" onClick={toggleCs135}>{zh?'停用':'Disable'}</button>}<span className={s?.status==='error'?'danger':'muted'}>{reading?phase(s,zh):s?.status==='ok'?(zh?'已连接':'Connected'):s?.status==='error'?(zh?'读取失败':'Read failed'):(zh?'尚未连接':'Not connected')}{seconds!=null&&` · ${seconds} s`}</span><small className="muted">{zh?'最后成功：':'Last success: '}{s?.at?fmt(s.at,state.settings.locale,state.settings.zone):(zh?'尚无':'Never')}</small>{p==='learn'&&<LearnReadDetails status={s} zh={zh}/>}
-{s?.error&&<div className="source-failure"><code>{s.error==='sign-in-required'?(zh?'需要你完成密码或验证码；完成登录后会自动继续。':'Complete your password or verification step; syncing resumes after sign-in.'):s.error}</code><button className="text-button" onClick={()=>open(p)}>{zh?'打开网站检查':'Check website'}<ArrowSquareOut size={13}/></button></div>}</div><button className="icon-button" disabled={reading} aria-label={`${zh?'刷新':'Refresh'} ${label(p)}`} title={zh?'仅刷新此来源':'Refresh only this source'} onClick={()=>retry(p)}><ArrowClockwise size={18}/></button></div>
+  return <div className="source-row" key={p}><div className="source-monogram">{p==='cs135'?'CS':label(p)[0]}</div><div className="source-copy"><b>{label(p)}</b>{p==='cs135'&&<button className="text-button" onClick={toggleCs135}>{zh?'停用':'Disable'}</button>}<span className={s?.status==='error'?'danger':'muted'}>{reading?phase(s,zh):s?.status==='ok'?(zh?'已连接':'Connected'):s?.status==='error'?(zh?'读取失败':'Read failed'):(zh?'尚未连接':'Not connected')}{seconds!=null&&` · ${seconds} s`}</span><small className="muted">{zh?'最后成功：':'Last success: '}{s?.at?fmt(s.at,state.settings.locale,state.settings.zone):(zh?'尚无':'Never')}</small></div><button className="icon-button" disabled={reading} aria-label={`${zh?'刷新':'Refresh'} ${label(p)}`} title={zh?'仅刷新此来源':'Refresh only this source'} onClick={()=>retry(p)}><ArrowClockwise size={18}/></button>{p==='learn'&&<LearnReadDetails status={s} zh={zh}/>}
+{s?.error&&<div className="source-failure"><code>{s.error==='sign-in-required'?(zh?'需要你完成密码或验证码；完成登录后会自动继续。':'Complete your password or verification step; syncing resumes after sign-in.'):s.error}</code><button className="text-button" onClick={()=>open(p)}>{zh?'打开网站检查':'Check website'}<ArrowSquareOut size={13}/></button></div>}</div>
  })}<p className="small muted">{zh?'自动更新会复用近期成功数据；点击刷新按钮将重新读取。':'Automatic updates reuse recent successful data. Refresh forces a new read.'}</p></section>;
 }

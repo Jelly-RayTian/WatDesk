@@ -29,6 +29,7 @@ if(new URLSearchParams(location.search).has('tools')){
  s.changes.unshift({kind:'exam',id:exam.id,title:exam.title,at:new Date().toISOString(),before:[null,exam.start,exam.end,'MC 2066','A03'].join('|'),after:[null,exam.start,exam.end,exam.location,exam.seat].join('|')});
 }
 if(new URLSearchParams(location.search).has('availability')){s.settings.onboardingComplete=true;s.sources.learn.issues=[{course:'MATH 135',tool:'grades',kind:'unavailable',code:'forbidden',status:403},{course:'MATH 137',tool:'quizzes',kind:'unavailable',code:'not-found',status:404}]}
+if(new URLSearchParams(location.search).has('availabilitymany')){s.settings.onboardingComplete=true;s.sources.learn.issues=[...['dropbox','quizzes'].map(tool=>({course:'MATH 135',tool,kind:'unavailable' as const,code:'forbidden',status:403})),...['dropbox','discussions','calendar','grades'].map(tool=>({course:'Orientation',tool,kind:'unavailable' as const,code:'forbidden',status:403})),{course:'MATH 137',tool:'quizzes',kind:'failed',code:'network'}]}
 // Opt-in observation of the native animation during local visual checks.
 if(new URLSearchParams(location.search).has('motioncheck')){
  const nativeAnimate=Element.prototype.animate;
