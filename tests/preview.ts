@@ -49,7 +49,7 @@ const listeners=new Set<any>();function publish(){listeners.forEach(fn=>fn({watd
  s.syncRun={started:Date.now(),targets:[...targets],completed:[],finished:false};publish();
  for(const p of targets){
   s.syncRun.active=p;s.sources[p]={...s.sources[p],status:'syncing',phase:p==='crowdmark'?'grades':'tasks',attempt:new Date().toISOString()};publish();
-  if(demo.has('syncdemo'))await new Promise(r=>setTimeout(r,3500));
+  if(demo.has('syncdemo'))await new Promise(r=>setTimeout(r,demo.has('slowprogress')?12000:3500));
   if(p==='crowdmark'&&(demo.has('syncerror')||demo.has('readfail'))){s.sources[p]={...s.sources[p],phase:undefined,durationMs:3500,status:'error',error:'signed-out: Please sign in on Crowdmark.'};s.syncRun={...s.syncRun,active:undefined,failed:p,finished:true};publish();return {ok:true,value:true}}
   s.sources[p]={...s.sources[p],phase:undefined,durationMs:3500,status:'ok',at:new Date().toISOString()};s.syncRun.completed.push(p);s.syncRun.active=undefined;publish();
  }

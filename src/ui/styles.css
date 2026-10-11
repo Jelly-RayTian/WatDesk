@@ -154,3 +154,29 @@
  .course-summary .mean-cell{min-width:0}
  .course-summary .mean-track{width:100%;min-width:0}
 }
+
+/* Progress is tied to completed platforms; only unknown-duration reads shimmer. */
+.sync-progress{margin:12px 0}
+.sync-progress-segments{display:flex;gap:5px;height:8px}
+.sync-progress-segment{position:relative;flex:1;min-width:0;background:var(--soft);border-radius:5px;overflow:hidden}
+.sync-progress-segment>i{display:block;height:100%;width:100%;background:var(--yellow);transform:scaleX(0);transform-origin:left;transition:transform 220ms cubic-bezier(.23,1,.32,1)}
+.sync-progress-segment.complete>i{transform:scaleX(1)}
+.sync-progress-segment.reading>i{width:50%;transform:none;animation:source-read-sweep 1.15s ease-in-out infinite;background:linear-gradient(90deg,var(--yellow),#f1c844)}
+.sync-progress-segment.failed>i{background:var(--danger);transform:scaleX(1);opacity:.65}
+.sync-progress-labels{display:flex;gap:5px;margin-top:7px;font-size:9px;line-height:1.4;color:var(--muted)}
+.sync-progress-labels>span{display:flex;justify-content:center;align-items:center;gap:3px;flex:1;min-width:0}
+.sync-progress-labels>span>span{overflow-wrap:anywhere}
+.sync-progress-labels .current{font-weight:650;color:var(--ink)}
+.sync-progress-labels .complete{color:var(--ink)}
+.background-sync.is-reading{border-color:#e5ce79;box-shadow:0 3px 14px #d7b74b10}
+.background-sync.is-reading .background-sync-copy{font-size:12px}
+.background-sync-copy>small{font-size:11px;font-weight:600}
+.connection-progress-panel{padding:14px;background:var(--soft);border-radius:14px;margin:18px 0}
+.connection-progress-panel>div:first-child{display:flex;justify-content:space-between;gap:8px;font-size:12px}
+.connection-progress-panel>div:first-child>span{font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--muted)}
+.connection-progress-panel .sync-progress{margin-bottom:0}
+.connection-progress-panel .sync-progress-segment{background:var(--surface)}
+.reading-bar{height:5px;border-radius:5px;overflow:hidden;background:var(--soft);width:100%;min-width:0;margin:9px 0}
+.reading-bar>i{display:block;width:40%;height:100%;border-radius:inherit;background:var(--yellow);animation:source-read-sweep 1.15s ease-in-out infinite}
+@keyframes source-read-sweep{from{transform:translateX(-110%)}to{transform:translateX(300%)}}
+@media(prefers-reduced-motion:reduce){.sync-progress-segment>i{transition:none}.sync-progress-segment.reading>i,.reading-bar>i{animation:none;transform:translateX(55%)}}
