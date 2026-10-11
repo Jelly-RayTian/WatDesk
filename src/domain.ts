@@ -1,0 +1,15 @@
+export type Platform='learn'|'crowdmark'|'odyssey'|'cs135'|'manual';
+export type Locale='zh-CN'|'en';
+export interface Course {id:string;code:string;name:string;term?:string}
+export interface GradePlan {weights:Record<string,number>;target?:number}
+export interface Entry {mergedIds?:string[];gradeRecordedAt?:string;gradeOnly?:boolean;gradeText?:string;category?:import('./core/presentation').EntryKind;scorePercent?:number;gradeStatus?:'graded'|'submitted'|'pending';id:string;platform:Platform;course:string;title:string;type:'task'|'exam';start:string|null;end:string|null;due:string|null;status:'open'|'submitted';url:string;location?:string;seat?:string;duration?:string;gone?:boolean;seenIn?:string[];readerCourseId?:string}
+export interface Overlay {keepSeparate?:boolean;done?:boolean;note?:string;hidden?:boolean;linkedTo?:string}
+export interface LearnReadIssue {course:string;tool:string;code:string;status?:number;kind:'unavailable'|'failed'}
+export interface SyncStatus {issues?:LearnReadIssue[];phase?:'page'|'tasks'|'grades';durationMs?:number;gradesAt?:string;status:'idle'|'syncing'|'ok'|'error';attempt?:string;at?:string;error?:string;count?:number;identity?:string}
+export interface Settings {hiddenCourses?:string[];gradePlans?:Record<string,GradePlan>;cs135Enabled?:boolean;onboardingComplete?:boolean;visualVersion?:number;locale:Locale;theme:'system'|'light'|'dark';zone:string;taskLead:number;examLeads:number[];notifications:boolean;mutedCourses:string[]}
+export interface SyncRun {reused?:Exclude<Platform,'manual'>[];started:number;targets:Exclude<Platform,'manual'>[];completed:Exclude<Platform,'manual'>[];active?:Exclude<Platform,'manual'>;failed?:Exclude<Platform,'manual'>;finished:boolean}
+export interface AppState {syncRun?:SyncRun;schemaVersion:1;settings:Settings;courses:Course[];entries:Entry[];overlays:Record<string,Overlay>;sources:Record<string,SyncStatus>;sent:Record<string,string>;changes:Array<{kind?:'exam';id:string;title:string;at:string;before:string;after:string}>}
+export function emptyState(locale:Locale='en'):AppState{return {schemaVersion:1,settings:{visualVersion:3,locale,theme:'light',zone:'America/Toronto',taskLead:1440,examLeads:[1440,60],notifications:true,mutedCourses:[]},courses:[],entries:[],overlays:{},sources:{},sent:{},changes:[]}}
+export const platforms:Exclude<Platform,'manual'>[]=['learn','crowdmark','odyssey','cs135'];
+export const urls:Record<Platform,string>={learn:'https://learn.uwaterloo.ca/d2l/home',crowdmark:'https://app.crowdmark.com/student/courses',odyssey:'https://odyssey.uwaterloo.ca/teaching/schedule',cs135:'https://student.cs.uwaterloo.ca/~cs135/',manual:''};
+export const origins:Record<Platform,string>={learn:'https://learn.uwaterloo.ca/*',crowdmark:'https://app.crowdmark.com/*',odyssey:'https://odyssey.uwaterloo.ca/*',cs135:'https://student.cs.uwaterloo.ca/*',manual:''};

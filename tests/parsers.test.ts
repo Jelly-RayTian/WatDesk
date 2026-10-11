@@ -1,0 +1,5 @@
+import {it,expect} from 'vitest';
+import {parseOdyssey,parseCs135} from '../src/adapters/parsers';
+it('reads Odyssey actual table columns, keeping unknown date and room empty',()=>{const rows=[['Exam','Duration','When','Room','Seat','Sequence'],['CS 135 Midterm','110 minutes','2026-11-09 19:00–20:50','TBA',''],['CS 135 Final','150 minutes','TBA','TBA','']];const r=parseOdyssey(rows);expect(r).toHaveLength(2);expect(r[0].start).toBe('2026-11-10T00:00:00Z');expect(r[0].end).toBe('2026-11-10T01:50:00Z');expect(r[0].location).toBe('');expect(r[1].start).toBeNull()});
+it('reads CS135 calendar with explicit 9pm assignment policy and dated exam',()=>{const r=parseCs135([{month:'October 2026',cells:['20 L09 A04 Due','8 L08 Quiz 19:00-20:50']}],true);expect(r[0].due).toBe('2026-10-21T01:00:00Z');expect(r[0].title).toBe('Assignment 04');expect(r[1].start).toBe('2026-10-08T23:00:00Z')});
+it('does not invent due time if course policy disappears',()=>{expect(parseCs135([{month:'October 2026',cells:['20 A04 Due']}],false)).toHaveLength(0)});

@@ -1,0 +1,11 @@
+import {it,expect} from 'vitest';
+import {emptyState,type Entry} from '../src/domain';
+import {clearSource,visibleEntries} from '../src/core/state';
+import {planReminders,validateBackup} from '../src/core/util';
+import {SyncFence} from '../src/core/fence';
+const e:Entry={id:'learn:x',platform:'learn',course:'CS 135',title:'A04',type:'task',due:'2026-10-20T01:00:00Z',start:null,end:null,status:'open',url:''};
+it('clearing a source removes account-specific notes, courses, reminders and link references',()=>{const s=emptyState();s.settings.cs135Enabled=true;s.entries=[{...e},{...e,id:'cs135:x',platform:'cs135'}];s.courses=[{id:'learn:1',code:'CS 135',name:'CS'}];s.overlays[e.id]={done:true,note:'private'};s.overlays['cs135:x']={linkedTo:e.id};s.sent[e.id+':time:60']='2026-01-01T00:00:00Z';const next=clearSource(s,'learn');expect(next.overlays[e.id]).toBeUndefined();expect(next.overlays['cs135:x'].linkedTo).toBeUndefined();expect(next.courses).toHaveLength(0);expect(Object.keys(next.sent)).toHaveLength(0)});
+it('restores linked entry when its target disappears',()=>{const s=emptyState();s.settings.cs135Enabled=true;s.entries=[{...e},{...e,id:'cs135:x',platform:'cs135'}];s.overlays['cs135:x']={linkedTo:e.id};expect(visibleEntries(s)).toHaveLength(1);s.entries[0].gone=true;expect(visibleEntries(s).some(x=>x.id==='cs135:x')).toBe(true)});
+it('invalidates old sync replies after clear/restore without invalidating other sources',()=>{const fence=new SyncFence();const a=fence.capture('learn'),b=fence.capture('crowdmark');fence.invalidate('learn');expect(fence.current('learn',a)).toBe(false);expect(fence.current('crowdmark',b)).toBe(true);fence.invalidate();expect(fence.current('crowdmark',b)).toBe(false)});
+it('supports reminders at the exact deadline with zero minute lead',()=>{const s=emptyState();s.settings.cs135Enabled=true;s.entries=[{...e}];s.settings.taskLead=0;expect(planReminders(s,e.due!)).toHaveLength(1)});
+it('rejects invalid dates used by source and change history views',()=>{const s=emptyState();s.settings.cs135Enabled=true;s.sources.learn={status:'ok',at:'bad'};expect(()=>validateBackup(JSON.stringify(s))).toThrow()});

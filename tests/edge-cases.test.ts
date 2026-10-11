@@ -1,0 +1,10 @@
+import {it,expect} from 'vitest';
+import ICAL from 'ical.js';
+import {emptyState,type Entry} from '../src/domain';
+import {exportIcs,validateBackup,planReminders} from '../src/core/util';
+import {parseOdyssey} from '../src/adapters/parsers';
+const e:Entry={id:'manual:1',platform:'manual',course:'CS 135',title:'复习, recursion; lists',type:'task',due:'2026-10-21T01:00:00Z',start:null,end:null,status:'open',url:''};
+it('parses exported calendar with an independent RFC parser including long Chinese text',()=>{const s=emptyState();s.entries=[{...e,title:e.title+'递归'.repeat(70)}];const comp=new ICAL.Component(ICAL.parse(exportIcs(s)));const event=new ICAL.Event(comp.getFirstSubcomponent('vevent')!);expect(event.summary).toBe('CS 135 '+s.entries[0].title);expect(event.startDate.toJSDate().toISOString()).toBe('2026-10-21T01:00:00.000Z')});
+it('rejects malformed UI-bearing fields in backups',()=>{for(const patch of [{overlays:{x:{note:{evil:1}}}},{courses:[{id:'x',code:{},name:'x'}]},{settings:{...emptyState().settings,notifications:'yes'}}])expect(()=>validateBackup(JSON.stringify({...emptyState(),...patch}))).toThrow()});
+it('suppresses reminders already sent, muted, submitted, or linked',()=>{const s=emptyState();s.entries=[e];const now='2026-10-20T01:00:30Z';const first=planReminders(s,now);expect(first).toHaveLength(1);s.sent[first[0].key]=now;expect(planReminders(s,now)).toHaveLength(0);s.sent={};s.settings.mutedCourses=['CS 135'];expect(planReminders(s,now)).toHaveLength(0);s.settings.mutedCourses=[];s.entries[0].status='submitted';expect(planReminders(s,now)).toHaveLength(0);s.entries[0].status='open';s.entries.push({...e,id:'other',due:null});s.overlays[e.id]={linkedTo:'other'};expect(planReminders(s,now)).toHaveLength(0)});
+it('does not turn Odyssey midnight placeholders into actual examination times',()=>{const items=parseOdyssey([['Exam','Duration','When','Room','Seat'],['CS 135 Final','2 hours','2026-12-15 00:00','TBA','TBA']]);expect(items[0].start).toBeNull()});

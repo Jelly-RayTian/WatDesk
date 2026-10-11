@@ -1,0 +1,51 @@
+import {platforms,urls,origins,type Platform,type AppState,type Course,type Entry,type LearnReadIssue} from '../domain';
+import {parseOdyssey,parseCs135Html} from './parsers';
+import {readCrowdmarkApi} from './crowdmark-api';
+import {retryFrame,waitForTab} from '../core/sync';
+import {retainIncomplete} from './partial';
+// MIT-licensed readers, attribution in THIRD_PARTY_NOTICES.md.
+// @ts-ignore vendored JavaScript boundary
+import {LiveSource} from '../vendor/watnow/data/live-source.js';
+import {sourceTab} from './source-tabs';
+import {parseLearnGrades,parseLearnExams} from './learn-extras';
+import {needsGradeRefresh} from '../core/presentation';
+import {readLearnCourses} from './learn-batch';
+import {toolIssues,readLearnGradeBatch} from './learn-availability';
+type ReaderPlatform=Exclude<Platform,'manual'>;
+export async function relay(p:ReaderPlatform,path:string,tabId?:number){
+ if(!((p==='learn'&&path.startsWith('/d2l/'))||(p==='crowdmark'&&path.startsWith('/api/v2/student/')))||path.startsWith('//'))throw Error('path');
+ const id=tabId??await sourceTab(p);await waitForTab(id);const [result]=await retryFrame(()=>chrome.scripting.executeScript({target:{tabId:id},func:async(path:string)=>{try{const res=await fetch(path,{credentials:'include',signal:AbortSignal.timeout(20000)});const type=res.headers.get('content-type')||'';let json;let body='';let parseError;try{const text=await res.text();if(type.includes('json'))json=JSON.parse(text);else body=text.slice(0,16000)}catch(e){parseError=String(e)}return {status:res.status,type,json,body,parseError,redirected:res.redirected,loginRedirect:!res.url.startsWith(location.origin+'/d2l/')&&path.startsWith('/d2l/')}}catch(e){return {status:0,error:String(e)}}},args:[path]}),()=>waitForTab(id));return result?.result;
+}
+export async function readPlatform(p:ReaderPlatform,state:AppState,forceGrades=false):Promise<{entries:Entry[];courses:Course[];identity?:string;warning?:string;gradesAt?:string;issues?:LearnReadIssue[]}>{
+ if(!platforms.includes(p))throw Error('platform');if(!(await chrome.permissions.contains({origins:[origins[p]]})))throw Error('permission');
+ if(p==='learn'){
+  const tabId=await sourceTab('learn');
+  const source=new LiveSource({school:'uwaterloo'},{relay:(_base:string,path:string)=>relay('learn',path,tabId)});
+  const session=await source.checkSession();if(!session.signedIn)throw Error(session.reason||'signed-out');
+  const courses=await source.listCourses();const entries:Entry[]=[];let failed=0;
+  const results=await readLearnCourses<any,any[]>(source,courses);
+  for(const [index,result] of results.entries()){if(result.status==='rejected'){if(result.reason?.code==='signed-out'||result.reason?.status===401)throw Error('signed-out');failed++;continue}for(const i of result.value)entries.push(fromReader(i,courses[index].code,'learn'))}
+  if(failed)throw Error(`partial:${failed}`);
+  const exams=parseLearnExams(source.calendar?.events||[],courses);const examIds=new Set(exams.map(e=>e.id.split(':').at(-1)));
+  const deadlines=entries.filter(e=>!examIds.has(e.id.match(/:content:cal(\d+)$/)?.[1]||''));deadlines.push(...exams);
+  const previousGrades=state.entries.filter(e=>e.platform==='learn'&&e.gradeOnly&&!e.gone);let gradesAt=state.sources.learn?.gradesAt;
+  const issues=toolIssues(source.report.courses);
+  if(needsGradeRefresh(gradesAt,forceGrades)){
+   const grades=await readLearnGradeBatch(source,courses,previousGrades);deadlines.push(...grades.entries);issues.push(...grades.issues);
+   gradesAt=grades.retry?undefined:new Date().toISOString();
+  }else{deadlines.push(...previousGrades);issues.push(...state.sources.learn?.issues?.filter(i=>i.tool==='grades')||[])}
+  const failures=issues.filter(i=>i.kind==='failed');
+  return {entries:retainIncomplete(state.entries.filter(e=>!e.gradeOnly),deadlines,source.readOk),gradesAt,issues,courses:courses.map((c:any)=>({id:`learn:${c.id}`,code:c.code,name:c.name||c.code})),identity:session.student?.name,warning:failures.length?`learn-partial: ${failures.map(i=>`${i.course}/${i.tool}/${i.status||i.code}`).join('; ')}`:undefined};
+ }
+ if(p==='crowdmark')return readCrowdmarkApi(state);
+ if(p==='cs135'){const r=await fetch(urls.cs135+'calendar/index.html',{signal:AbortSignal.timeout(20000),cache:'no-store'});if(!r.ok)throw Error('cs135-http:'+r.status);return {entries:parseCs135Html(await r.text()),courses:[{id:'cs135:web',code:'CS 135',name:'Designing Functional Programs'}]}}
+ const tabId=await sourceTab(p);await waitForTab(tabId);
+ const [result]=await chrome.scripting.executeScript({target:{tabId},func:async(p:string)=>{
+  const target=p==='odyssey'?'/teaching/schedule':'/~cs135/calendar/index.html';const r=await fetch(target,{credentials:'include',signal:AbortSignal.timeout(20000)});if(!r.ok||new URL(r.url).hostname!==location.hostname)throw Error('signed-out');const html=await r.text();const doc=new DOMParser().parseFromString(html,'text/html');
+  if(p==='odyssey'){const heading=doc.querySelector('h1')?.textContent||'';return {heading,rows:[...doc.querySelectorAll('main table tr')].map(row=>[...row.querySelectorAll('th,td')].flatMap(c=>Array(Number(c.getAttribute('colspan')||1)).fill('').map((_,i)=>i===0?c.textContent?.trim()||'':'')))}}
+  return {tables:[...doc.querySelectorAll('table')].map(t=>({month:t.querySelector('tr')?.textContent?.trim()||'',cells:[...t.querySelectorAll('td')].map(c=>c.textContent?.replace(/\s+/g,' ').trim()||'')})),policy:/due at 9:00pm/i.test(doc.body.textContent||'')};
+ },args:[p]});const data=result?.result as any;if(!data)throw Error('parse');
+ if(p==='odyssey'){if(!/Assessment Schedule/.test(data.heading))throw Error('signed-out');return {entries:parseOdyssey(data.rows),courses:[],identity:data.heading.match(/\(([^)]+)\)/)?.[1]}}
+ throw Error('platform');
+}
+function fromReader(i:any,course:string,platform:'learn'|'crowdmark'):Entry{return {id:`${platform}:${i.id}`,platform,course,category:i.category,title:i.title,type:'task',start:i.opensAt||null,end:null,due:i.dueAt||null,status:i.status==='submitted'?'submitted':'open',url:i.url||urls[platform],seenIn:i.seenIn,readerCourseId:i.courseId}}

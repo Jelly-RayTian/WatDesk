@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "WatDesk",
+  "description": "Your Waterloo coursework and exam workspace. 中英文滑铁卢学业与考试工作台。",
+  "version": "0.9.1",
+  "minimum_chrome_version": "120",
+  "permissions": [
+    "storage",
+    "alarms",
+    "notifications",
+    "sidePanel",
+    "scripting"
+  ],
+  "optional_host_permissions": [
+    "https://learn.uwaterloo.ca/*",
+    "https://app.crowdmark.com/*",
+    "https://odyssey.uwaterloo.ca/*",
+    "https://student.cs.uwaterloo.ca/*"
+  ],
+  "background": {
+    "service_worker": "worker.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "index.html?side=1"
+  },
+  "options_page": "index.html#settings",
+  "action": {
+    "default_title": "WatDesk"
+  },
+  "icons": {
+    "128": "icon.png"
+  }
+}

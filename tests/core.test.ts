@@ -1,0 +1,13 @@
+import {it,expect} from 'vitest';
+import {emptyState,type Entry} from '../src/domain';
+import {applySnapshot,visibleEntries,possibleDuplicates} from '../src/core/state';
+import {campusInstant,planReminders,exportIcs,validateBackup} from '../src/core/util';
+const item:Entry={id:'learn:1',platform:'learn',course:'CS 135',title:'A04',type:'task',start:null,end:null,due:'2026-10-20T01:00:00Z',status:'open',url:'https://learn.uwaterloo.ca/d2l/home'};
+it('does not delete old records after failed sync',()=>{const s=emptyState();s.settings.cs135Enabled=true;s.entries=[item];expect(applySnapshot(s,'learn',[],[],{status:'error'}).entries).toHaveLength(1)});
+it('merges matching cross-platform assignments while preserving source records',()=>{const s=emptyState();s.settings.cs135Enabled=true;s.entries=[item,{...item,id:'cs135:4',platform:'cs135'}];expect(visibleEntries(s)).toHaveLength(1);expect(visibleEntries(s)[0].mergedIds).toHaveLength(2);expect(s.entries).toHaveLength(2)});
+it('keeps user completion and detects source due-time changes',()=>{const s=emptyState();s.settings.cs135Enabled=true;s.entries=[item];s.overlays[item.id]={done:true,note:'revise'};const r=applySnapshot(s,'learn',[{...item,due:'2026-10-21T01:00:00Z'}],[],{status:'ok'});expect(r.overlays[item.id].note).toBe('revise');expect(r.changes).toHaveLength(1)});
+it('refuses identity mixing',()=>{const s=emptyState();s.settings.cs135Enabled=true;s.sources.learn={status:'ok',identity:'one'};s.entries=[item];const r=applySnapshot(s,'learn',[],[],{status:'ok',identity:'two'});expect(r.entries).toHaveLength(1);expect(r.sources.learn.error).toBe('identityChanged')});
+it('interprets campus DST and rejects ambiguous local times',()=>{expect(campusInstant('2026-10-20T21:00')).toBe('2026-10-21T01:00:00Z');expect(campusInstant('2026-11-01T01:30')).toBeNull()});
+it('does not notify completed work or notify the same version twice',()=>{const s=emptyState();s.settings.cs135Enabled=true;s.entries=[item];const now='2026-10-19T01:00:10Z';expect(planReminders(s,now)).toHaveLength(1);s.overlays[item.id]={done:true};expect(planReminders(s,now)).toHaveLength(0)});
+it('exports Chinese and stable IDs to a standards-compliant calendar',()=>{const s=emptyState('zh-CN');s.entries=[item];const ics=exportIcs(s);expect(ics).toContain('UID:learn-1@watdesk.local');expect(ics).toContain('DTSTART:20261020T010000Z');expect(ics.endsWith('\r\n')).toBe(true)});
+it('rejects unsafe or unsupported backup',()=>{expect(()=>validateBackup('{"schemaVersion":9}')).toThrow();expect(()=>validateBackup(JSON.stringify({...emptyState(),entries:[{...item,url:'javascript:alert(1)'}]}))).toThrow()});
