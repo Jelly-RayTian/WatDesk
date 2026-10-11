@@ -20,3 +20,5 @@ it('reuses previous assessment IDs so notes and completion remain associated',()
  const [updated]=retainCrowdmarkIds([entry],[previous]);expect(overlays[updated.id]).toEqual({note:'Keep this',done:true});
  expect(gradeCourseKey(entry)).not.toBe(gradeCourseKey({...entry,readerCourseId:'math-135-winter-2027'}));
 });
+
+it('accepts a confirmed empty assessment page even without a course count',async()=>{vi.useFakeTimers();document.body.innerHTML='<main><h1>Course</h1><h2>Assignments</h2><p>No assessments available</p></main>';const p=collectCrowdmarkPage(location.pathname,'assessments',null);await vi.advanceTimersByTimeAsync(700);expect((await p).tables).toEqual([])});

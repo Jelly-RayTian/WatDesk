@@ -78,3 +78,5 @@ it('resumes a failed sign-in automatically when the platform landing page comple
 it('disabling CS135 clears an interrupted in-progress marker',async()=>{
  const ctx=await setup(true);ctx.state().sources.cs135={status:'syncing',phase:'tasks'};await ctx.message('settings',{patch:{cs135Enabled:false}});expect(ctx.state().sources.cs135.phase).toBeUndefined();expect(ctx.state().sources.cs135.status).toBe('idle');vi.unstubAllGlobals();
 });
+
+it('activates source pages automatically for first setup but keeps returning-user refresh quiet',async()=>{const ctx=await setup(true);mocked.read.mockResolvedValue({entries:[],courses:[]});await ctx.message('refreshOnOpen');expect(mocked.tab.mock.calls.every(c=>c[1]===true)).toBe(true);ctx.state().settings.onboardingComplete=true;mocked.tab.mockClear();await ctx.message('refreshOnOpen',{force:true});expect(mocked.tab.mock.calls.every(c=>c[1]===false)).toBe(true);vi.unstubAllGlobals()});

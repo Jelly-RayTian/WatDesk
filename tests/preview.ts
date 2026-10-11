@@ -37,6 +37,7 @@ if(new URLSearchParams(location.search).has('polish')){
  s.courses=[{id:'learn:1',code:'MATH 135',name:'Algebra',term:'Fall 2026'},{id:'learn:2',code:'MATH 137',name:'Calculus',term:'Fall 2026'}];
  s.entries=s.entries.map(e=>({...e,verifiedAt:new Date().toISOString(),gradeText:e.scorePercent==null?undefined:`${e.scorePercent/5} / 20`}));
 }
+if(new URLSearchParams(location.search).has('totals')){s.settings.onboardingComplete=true;s.entries.push({id:'preview:total',platform:'crowdmark',course:'MATH 135',title:'Overall Average',type:'task',start:null,end:null,due:null,status:'submitted',scorePercent:90,gradeStatus:'graded',url:'https://app.crowdmark.com/student/courses'});}
 // Opt-in observation of the native animation during local visual checks.
 if(new URLSearchParams(location.search).has('motioncheck')){
  const nativeAnimate=Element.prototype.animate;

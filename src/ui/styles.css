@@ -180,3 +180,4 @@
 .reading-bar>i{display:block;width:40%;height:100%;border-radius:inherit;background:var(--yellow);animation:source-read-sweep 1.15s ease-in-out infinite}
 @keyframes source-read-sweep{from{transform:translateX(-110%)}to{transform:translateX(300%)}}
 @media(prefers-reduced-motion:reduce){.sync-progress-segment>i{transition:none}.sync-progress-segment.reading>i,.reading-bar>i{animation:none;transform:translateX(55%)}}
+.history-title>.grade-status{display:table;margin-top:7px;padding:3px 8px;border-radius:999px;background:var(--soft);color:var(--accent);font-size:11px;font-weight:600;line-height:1.5}

@@ -20,4 +20,4 @@ export async function readCrowdmarkApi(state:AppState){
  entries.push(...state.entries.filter(e=>e.platform==='crowdmark'&&!e.gone&&!urls.has(e.url)&&(!readSlugs.has(e.readerCourseId||'')||e.scorePercent!=null||e.due==null)).map(e=>({...e,readState:'retained' as const})));
  return {entries:retainCrowdmarkIds(entries,state.entries),courses,warning:result.failedCourseIds.size?'crowdmark-partial: Previous records retained.':undefined};
 }
-export async function enrichCrowdmarkGrades(state:AppState){return readCrowdmarkPages(state)}
+export async function enrichCrowdmarkGrades(state:AppState,options:Parameters<typeof readCrowdmarkPages>[2]={}){return readCrowdmarkPages(state,undefined,options)}
