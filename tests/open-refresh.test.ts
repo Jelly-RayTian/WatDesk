@@ -4,7 +4,7 @@ import {emptyState} from '../src/domain';
 const mocked=vi.hoisted(()=>({read:vi.fn(),tab:vi.fn().mockResolvedValue(1),grades:vi.fn()}));
 vi.mock('../src/adapters/login',()=>({autoLogin:async()=>{}}));
 vi.mock('../src/adapters/read',()=>({readPlatform:mocked.read}));
-vi.mock('../src/adapters/source-tabs',()=>({sourceTab:mocked.tab}));
+vi.mock('../src/adapters/source-tabs',()=>({sourceTab:mocked.tab,existingSourceTab:async()=>1}));
 vi.mock('../src/adapters/crowdmark-api',()=>({enrichCrowdmarkGrades:mocked.grades}));
 vi.mock('../src/core/sync',async original=>({...await original<any>(),waitForTab:async()=>{}}));
 beforeEach(()=>{vi.resetModules();mocked.read.mockReset();mocked.tab.mockClear();mocked.grades.mockReset().mockResolvedValue({entries:[],courses:[]})});
@@ -71,7 +71,7 @@ it('sends an exam-change notification after sync and records it so it is not rep
 });
 
 it('resumes a failed sign-in automatically when the platform landing page completes loading',async()=>{
- const ctx=await setup(true);ctx.state().sources.learn={status:'error',error:'sign-in-required'};mocked.read.mockResolvedValue({entries:[],courses:[]});ctx.updated(1,{status:'complete'},{url:'https://learn.uwaterloo.ca/d2l/home'});await vi.waitFor(()=>expect(ctx.state().syncRun?.finished).toBe(true));expect(ctx.state().sources.learn.status).toBe('ok');vi.unstubAllGlobals();
+ const ctx=await setup(true);ctx.state().sources.learn={status:'error',error:'sign-in-required'};mocked.read.mockResolvedValue({entries:[],courses:[]});ctx.updated(1,{status:'complete'},{url:'https://learn.uwaterloo.ca/d2l/home'});await vi.waitFor(()=>expect(ctx.state().sources.learn.status).toBe('ok'));expect(mocked.read.mock.calls.map(c=>c[0])).toEqual(['learn']);vi.unstubAllGlobals();
 });
 it('disabling CS135 clears an interrupted in-progress marker',async()=>{
  const ctx=await setup(true);ctx.state().sources.cs135={status:'syncing',phase:'tasks'};await ctx.message('settings',{patch:{cs135Enabled:false}});expect(ctx.state().sources.cs135.phase).toBeUndefined();expect(ctx.state().sources.cs135.status).toBe('idle');vi.unstubAllGlobals();

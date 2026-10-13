@@ -23,7 +23,7 @@ Independent bilingual academic workspace for University of Waterloo. Edge Manife
 - Course-specific deadline/exam reminders, manually entered weekly classes, course muting, calendar ICS export (including the next 90 days of classes), full JSON backup/restore and a self-contained offline HTML viewer.
 - Record-level verification times distinguish saved or retained data from freshly checked data. Learn skips hidden courses and reuses course reads for 10 minutes; manual refresh bypasses this cache. Failed reads retain the previous snapshot. Account name changes block replacement until source cache is cleared.
 
-Checking a task is personal bookkeeping; it does not submit anything to the university. Reminder delivery requires Edge to be running and Windows to allow notifications. Opening shows saved data immediately and checks for updates in the background with short freshness windows. Sync also runs every 30 minutes while Edge runs; manual refresh forces a new read. Grade estimates follow manually entered weights and do not model drop rules or pass-the-final conditions. Platform APIs/page layouts may change. Course content and external resource titles retain their original language.
+Checking a task is personal bookkeeping; it does not submit anything to the university. Reminder delivery requires Edge to be running and Windows to allow notifications. Opening shows saved data immediately and checks for updates in the background with short freshness windows. Every 30 minutes while Edge runs, automatic sync reads only already-open, loaded source tabs; it never opens, activates, reloads discarded tabs, or navigates source pages. Closed platforms keep their saved data until you open their website or click Refresh. Crowdmark grade-page browsing runs only on manual refresh or initial setup. Manual refresh forces a new read and may open the source websites. Grade estimates follow manually entered weights and do not model drop rules or pass-the-final conditions. Platform APIs/page layouts may change. Course content and external resource titles retain their original language.
 
 Data stays in this extension's local browser storage. No WatDesk server, analytics, password collection, or external font CDN. Source requests go to the corresponding university/Crowdmark service using the browser session. Backups contain your academic data and notes; keep them private. Removing the extension removes its local data: export a backup first.
 
@@ -54,3 +54,9 @@ Platform overall grades, category aggregates and class averages are labeled and 
 ## 1.0.3
 
 Platform refreshes run concurrently, with per-source deduplication and serialized state writes. A failed source does not block other sources. Overview course counts include open tasks and future exams; its upcoming list now includes Odyssey exam cards and supports course filtering.
+
+## 1.0.4
+
+Automatic sync no longer opens Learn, Crowdmark or Odyssey tabs. It only reads existing loaded pages, retains saved data when a platform is closed or signed out, and never navigates to login or Crowdmark grade pages. Returning from sign-in retries only that platform. Manual refresh and initial setup can still open source pages. CS135 uses a direct background fetch without opening a tab.
+
+自动同步不再突然打开 Learn、Crowdmark 或 Odyssey。只读取已打开且加载完成的页面；网站关闭或登录过期时保留历史数据，不自动跳转登录或浏览 Crowdmark 成绩页。登录后仅重试对应平台。手动刷新及首次连接仍可打开平台页面；CS135 直接后台读取，无需打开标签页。
