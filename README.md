@@ -6,9 +6,9 @@ Independent bilingual academic workspace for University of Waterloo. Edge Manife
 
 1. Build, or use the delivered `extension` folder.
 2. Open `edge://extensions`, enable Developer mode, choose **Load unpacked / 加载解压缩的扩展**, select that folder.
-3. First launch opens platform setup. Connect Learn, Crowdmark and Odyssey; CS135 is optional and disabled until selected. Review imported counts, then enter the workspace. The full-page button is visible at the top of setup and the side panel.
+3. First launch opens platform setup. Connect Learn, Crowdmark and Odyssey; CS135 and Möbius are optional and disabled until selected. Review imported counts, then enter the workspace. The full-page button is visible at the top of setup and the side panel.
 4. Pin WatDesk. Click its toolbar icon to open the side panel. Use **打开完整面板 / Open full workspace** for the full page.
-5. Installation requests access to the three core sites: Learn, Crowdmark and Odyssey. First opening automatically opens and connects them in parallel. CS135 and school SSO helper permissions remain optional. Sign in on Learn, Crowdmark and Odyssey themselves, SSO entries are clicked automatically when possible; passwords and verification stay under your control. Sync resumes when you return to the platform. CS135 calendar is public.
+5. Installation requests access to the three core sites: Learn, Crowdmark and Odyssey. First opening automatically opens and connects them in parallel. CS135, Möbius and school SSO helper permissions remain optional. Sign in on Learn, Crowdmark and Odyssey themselves, SSO entries are clicked automatically when possible; passwords and verification stay under your control. Sync resumes when you return to the platform. CS135 calendar is public.
 
 ## Features
 
@@ -60,3 +60,9 @@ Platform refreshes run concurrently, with per-source deduplication and serialize
 Automatic sync no longer opens Learn, Crowdmark or Odyssey tabs. It only reads existing loaded pages, retains saved data when a platform is closed or signed out, and never navigates to login or Crowdmark grade pages. Returning from sign-in retries only that platform. Manual refresh and initial setup can still open source pages. CS135 uses a direct background fetch without opening a tab.
 
 自动同步不再突然打开 Learn、Crowdmark 或 Odyssey。只读取已打开且加载完成的页面；网站关闭或登录过期时保留历史数据，不自动跳转登录或浏览 Crowdmark 成绩页。登录后仅重试对应平台。手动刷新及首次连接仍可打开平台页面；CS135 直接后台读取，无需打开标签页。
+
+## 1.1.0
+
+Learn now supplements Module Quiz deadlines from file-type Course Schedule topics. Möbius is an optional source with access limited to `https://uwmo.mobius.cloud/*`: enable it, then manually open an activity’s View Policies page from LEARN. WatDesk reads only settings metadata on already-loaded pages, never starts an attempt or requests an exception, and never navigates or opens Möbius even during manual refresh. Availability windows remain task deadlines; the per-attempt time limit is displayed separately. Only explicit submission/completion status counts as submitted; attempts used, content viewed and “results recorded” settings do not. Matching Learn/Möbius tasks merge into one calendar event and reminder while retaining the time limit. Previously seen settings remain saved when a different activity is read.
+
+新增可选 Möbius 来源，读取你从 LEARN 手动打开的「查看设置」页；Course Schedule 补齐 Module 1–12 Quiz 日期。开放窗口与单次限时分别显示，与 Learn 相同任务合并，仅提醒一次。不会自动打开网页、开始测验、请求例外或提交答案。

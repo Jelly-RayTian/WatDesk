@@ -38,6 +38,13 @@ if(new URLSearchParams(location.search).has('polish')){
  s.entries=s.entries.map(e=>({...e,verifiedAt:new Date().toISOString(),gradeText:e.scorePercent==null?undefined:`${e.scorePercent/5} / 20`}));
 }
 if(new URLSearchParams(location.search).has('totals')){s.settings.onboardingComplete=true;s.entries.push({id:'preview:total',platform:'crowdmark',course:'MATH 135',title:'Overall Average',type:'task',start:null,end:null,due:null,status:'submitted',scorePercent:90,gradeStatus:'graded',url:'https://app.crowdmark.com/student/courses'});}
+if(new URLSearchParams(location.search).has('mobius')){
+ s.settings.onboardingComplete=true;s.settings.mobiusEnabled=true;s.settings.cs135Enabled=false;s.entries=[];
+ const {parseMobiusSettings}=await import('../src/adapters/mobius');
+ const quiz=parseMobiusSettings({course:'ECON 101 Online - Fall 2026 - 081',title:'Module 6 Quiz',rows:[['Time Limit','20 minutes'],['Date','Start 2026/10/21 EDT 8:00:00 AM End 2026/10/23 EDT 11:00:00 PM']]})!;
+ s.entries=[{...quiz,id:'learn:sample-quiz',platform:'learn',duration:undefined},quiz];
+ s.sources.mobius={status:'ok',at:new Date().toISOString(),count:1};
+}
 // Opt-in observation of the native animation during local visual checks.
 if(new URLSearchParams(location.search).has('motioncheck')){
  const nativeAnimate=Element.prototype.animate;

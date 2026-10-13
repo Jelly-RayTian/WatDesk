@@ -7,7 +7,7 @@ import {readPlatform} from '../src/adapters/read';
 afterEach(()=>vi.unstubAllGlobals());
 function setup(){
  vi.stubGlobal('chrome',{permissions:{contains:async()=>true}});
- source.current={versions:{le:'1.82'},checkSession:async()=>({signedIn:true}),listCourses:async()=>[{id:'1',orgUnitId:1,code:'MATH 135'}],ensureFeed:async()=>{},ensureCalendar:async()=>{},listDeadlines:async()=>[],calendar:{events:[]},readOk:new Map([['1',new Set(['dropbox','quizzes','feed','calendar'])]]),report:{courses:[{code:'MATH 135',tools:{dropbox:0,quizzes:0,discussions:'failed: forbidden',myItems:0,calendar:0}}]},paged:vi.fn().mockRejectedValue(Object.assign(Error('denied'),{code:'forbidden',status:403}))};
+ source.current={api:vi.fn().mockResolvedValue([]),versions:{le:'1.82'},checkSession:async()=>({signedIn:true}),listCourses:async()=>[{id:'1',orgUnitId:1,code:'MATH 135'}],ensureFeed:async()=>{},ensureCalendar:async()=>{},listDeadlines:async()=>[],calendar:{events:[]},readOk:new Map([['1',new Set(['dropbox','quizzes','feed','calendar'])]]),report:{courses:[{code:'MATH 135',tools:{dropbox:0,quizzes:0,discussions:'failed: forbidden',myItems:0,calendar:0}}]},paged:vi.fn().mockRejectedValue(Object.assign(Error('denied'),{code:'forbidden',status:403}))};
  const s=emptyState();s.entries=[{id:'learn:grade:old',platform:'learn',course:'MATH 135',readerCourseId:'1',title:'Old score',type:'task',start:null,end:null,due:null,status:'open',url:'',gradeOnly:true,scorePercent:80}];return s;
 }
 it('keeps saved grades, reports restricted tools softly, and caches their checked availability',async()=>{
@@ -29,4 +29,9 @@ it('reuses recent course data while manual refresh bypasses its cache',async()=>
 });
 it('skips hidden Learn courses while retaining their saved grades',async()=>{
  const s=setup();s.settings.hiddenCourses=['MATH 135'];source.current.listDeadlines=vi.fn().mockResolvedValue([]);const r=await readPlatform('learn',s);expect(source.current.listDeadlines).not.toHaveBeenCalled();expect(source.current.paged).not.toHaveBeenCalled();expect(r.entries[0]).toMatchObject({id:s.entries[0].id,readState:'retained'});
+});
+it('preserves schedule quizzes when the course directory read is restricted',async()=>{
+ const s=setup();source.current.api.mockRejectedValue(Object.assign(Error('denied'),{code:'forbidden',status:403}));
+ s.entries.push({id:'learn:schedule:1:module-6-quiz',platform:'learn',course:'MATH 135',readerCourseId:'1',title:'Module 6 Quiz',type:'task',start:null,end:null,due:'2026-10-24T03:00:00Z',status:'open',url:'',seenIn:['course-schedule']});
+ const result=await readPlatform('learn',s);expect(result.entries.find(e=>e.title==='Module 6 Quiz')).toMatchObject({readState:'retained'});expect(result.issues).toContainEqual(expect.objectContaining({tool:'schedule',status:403,kind:'unavailable'}));
 });
