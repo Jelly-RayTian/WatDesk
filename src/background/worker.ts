@@ -5,7 +5,7 @@ import {enrichCrowdmarkGrades} from '../adapters/crowdmark-api';
 import {readPlatform} from '../adapters/read';
 import {withTimeout,recoverInterrupted} from '../core/sync';
 import {SyncFence} from '../core/fence';
-import {sourceTab} from '../adapters/source-tabs';
+import {sourceTab,existingSourceTab} from '../adapters/source-tabs';
 import {configureSchoolLogin} from './school-login';
 import {autoLogin} from '../adapters/login';
 import {needsGradeRefresh} from '../core/presentation';
@@ -13,34 +13,57 @@ import {waitForTab} from '../core/sync';
 import {enabledPlatforms} from '../core/onboarding';
 import {pendingExamChanges} from '../core/organization';
 import {canReuseSource} from '../core/refresh-policy';
-const fence=new SyncFence();const syncJobs=new Map<string,Promise<void>>();
+const fence=new SyncFence();const syncJobs=new Map<string,{job:Promise<void>;interactive:boolean}>();
 const ready=mutateState(recoverInterrupted);
 void ready.then(s=>configureSchoolLogin(s.settings.schoolAutoNext===true)).catch(()=>{});
-let openedRun:Promise<unknown>|undefined;
-async function refreshOnOpen(forceGrades=false){
- await ready;if(openedRun)return openedRun;
+let openedRun:Promise<unknown>|undefined;let openedInteractive=false;
+async function refreshOnOpen(forceGrades=false,interactive?:boolean){
+ await ready;interactive??=forceGrades||!(await loadState()).settings.onboardingComplete;
+ if(openedRun){if(interactive&&!openedInteractive){await openedRun;return refreshOnOpen(forceGrades,interactive)}return openedRun}
+ openedInteractive=interactive;
  openedRun=(async()=>{
   const targets:Exclude<Platform,'manual'>[]=[];
-  for(const p of enabledPlatforms(await loadState()))if(await chrome.permissions.contains({origins:[origins[p]]}))targets.push(p);
+  for(const p of enabledPlatforms(await loadState())){
+   if(!await chrome.permissions.contains({origins:[origins[p]]}))continue;
+   if(!interactive&&p!=='cs135'&&await existingSourceTab(p)==null)continue;
+   targets.push(p);
+  }
   await mutateState(s=>({...s,syncRun:{started:Date.now(),targets,completed:[],reused:[],finished:false}}));
   await Promise.allSettled(targets.map(async p=>{
    if(canReuseSource(p,(await loadState()).sources[p],forceGrades)){
     await mutateState(s=>({...s,syncRun:{...s.syncRun!,completed:[...new Set([...s.syncRun!.completed,p])],reused:[...s.syncRun!.reused||[],p]}}));return;
    }
-   await sync(p,forceGrades);
+   await sync(p,forceGrades,interactive);
    await mutateState(s=>({...s,syncRun:{...s.syncRun!,...(s.sources[p]?.status==='ok'?{completed:[...new Set([...s.syncRun!.completed,p])]}:{failed:s.syncRun!.failed||p})}}));
   }));
   await mutateState(s=>({...s,syncRun:{...s.syncRun!,finished:true}}));
  })();try{await openedRun}finally{openedRun=undefined}
 }
-function sync(p:Exclude<Platform,'manual'>,forceGrades=true){const running=syncJobs.get(p);if(running)return running;const job=runSync(p,forceGrades).finally(()=>syncJobs.delete(p));syncJobs.set(p,job);return job}
-async function runSync(p:Exclude<Platform,'manual'>,forceGrades:boolean){
- await ready;if(p==='cs135'&&(await loadState()).settings.cs135Enabled!==true)return;const token=fence.capture(p);const started=Date.now();
+function sync(p:Exclude<Platform,'manual'>,forceGrades=true,interactive=true):Promise<void>{
+ const running=syncJobs.get(p);
+ if(running)return interactive&&!running.interactive?running.job.then(()=>sync(p,forceGrades,interactive)):running.job;
+ const job=runSync(p,forceGrades,interactive).finally(()=>syncJobs.delete(p));syncJobs.set(p,{job,interactive});return job;
+}
+async function runSync(p:Exclude<Platform,'manual'>,forceGrades:boolean,interactive:boolean){
+ await ready;if(p==='cs135'&&(await loadState()).settings.cs135Enabled!==true)return;
+ const existingTabId=!interactive&&p!=='cs135'?await existingSourceTab(p):undefined;
+ if(!interactive&&p!=='cs135'&&existingTabId==null)return;
+ const token=fence.capture(p);const started=Date.now();
  try{
   await mutateState(s=>({...s,sources:{...s.sources,[p]:{...s.sources[p],attempt:new Date().toISOString(),phase:'page',status:'syncing'}}}));
-  const result=await withTimeout((async()=>{const tabId=await sourceTab(p,!(await loadState()).settings.onboardingComplete);await waitForTab(tabId);await autoLogin(p,tabId);await mutateState(s=>fence.current(p,token)?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:'tasks'}}}:s);try{return await readPlatform(p,await loadState(),forceGrades)}catch(e){if(p==='cs135'||!/signed.out|sign.in|session.unreadable|(?:^|\D)401(?:\D|$)/i.test(e instanceof Error?e.message:String(e)))throw e;await mutateState(s=>fence.current(p,token)?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:'page'}}}:s);await chrome.tabs.update(tabId,{url:urls[p]});await waitForTab(tabId);await autoLogin(p,tabId);return readPlatform(p,await loadState(),forceGrades)}})(),180000);
+  const result=await withTimeout((async()=>{
+   // The public CS135 calendar uses worker fetch and never needs a browser tab.
+   const tabId=p==='cs135'?undefined:interactive?await sourceTab(p,!(await loadState()).settings.onboardingComplete):existingTabId;
+   if(tabId!=null){await waitForTab(tabId);if(interactive)await autoLogin(p,tabId)}
+   await mutateState(s=>fence.current(p,token)?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:'tasks'}}}:s);
+   try{return await readPlatform(p,await loadState(),forceGrades,tabId)}catch(e){
+    if(!interactive||tabId==null||!/signed.out|sign.in|session.unreadable|(?:^|\D)401(?:\D|$)/i.test(e instanceof Error?e.message:String(e)))throw e;
+    await mutateState(s=>fence.current(p,token)?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:'page'}}}:s);
+    await chrome.tabs.update(tabId,{url:urls[p]});await waitForTab(tabId);await autoLogin(p,tabId);return readPlatform(p,await loadState(),forceGrades,tabId);
+   }
+  })(),180000);
   await mutateState(s=>fence.current(p,token)?applySnapshot(s,p,result.entries,result.courses,{status:'ok',at:new Date().toISOString(),count:result.entries.length,identity:result.identity,error:result.warning||(p==='crowdmark'&&/^crowdmark-(?:grades|archive)/.test(s.sources[p]?.error||'')?s.sources[p]?.error:undefined),...(p==='learn'?{gradesAt:result.gradesAt,issues:result.issues,courseReadAt:result.courseReadAt}:{})}):s);
-  if(p==='crowdmark'&&fence.current(p,token)&&needsGradeRefresh((await loadState()).sources[p]?.gradesAt,forceGrades)&&(forceGrades||Date.now()-Date.parse((await loadState()).sources[p]?.gradesAttemptAt||'1970-01-01')>=300000)){
+  if(interactive&&p==='crowdmark'&&fence.current(p,token)&&needsGradeRefresh((await loadState()).sources[p]?.gradesAt,forceGrades)&&(forceGrades||Date.now()-Date.parse((await loadState()).sources[p]?.gradesAttemptAt||'1970-01-01')>=300000)){
    await mutateState(s=>fence.current(p,token)?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:'grades',gradesAttemptAt:new Date().toISOString()}}}:s);
    try{
     const grades=await enrichCrowdmarkGrades(await loadState(),{force:forceGrades,onCourse:async part=>{
@@ -77,10 +100,10 @@ async function handle(msg:any){await ready;switch(msg.type){
  case 'testNotification':{const s=await loadState();await chrome.notifications.create({type:'basic',iconUrl:'icon.png',title:'WatDesk',message:s.settings.locale==='zh-CN'?'考试与任务提醒已准备就绪。':'Your exam and task reminders are ready.'});return {ok:true}}
  case 'open':if(platforms.includes(msg.platform)){const id=await sourceTab(msg.platform,true);await waitForTab(id);await autoLogin(msg.platform,id);return {ok:true}}throw Error('platform');
  default:throw Error('message');}}
-chrome.runtime.onMessage.addListener((msg,sender,respond)=>{if(sender.id!==chrome.runtime.id)return false;if(sender.tab){if(msg?.type==='crowdmark:page'&&sender.tab.url?.startsWith('https://app.crowdmark.com/')){void ready.then(async()=>{const state=await loadState();if(!openedRun&&state.sources.crowdmark?.status!=='ok'&&await chrome.permissions.contains({origins:[origins.crowdmark]}))void sync('crowdmark')});respond({ok:true});}return false;}handle(msg).then(value=>respond({ok:true,value})).catch(e=>respond({ok:false,error:e.message||String(e)}));return true});
+chrome.runtime.onMessage.addListener((msg,sender,respond)=>{if(sender.id!==chrome.runtime.id)return false;if(sender.tab){if(msg?.type==='crowdmark:page'&&sender.tab.url?.startsWith('https://app.crowdmark.com/')){void ready.then(async()=>{const state=await loadState();if(!openedRun&&state.sources.crowdmark?.status!=='ok'&&await chrome.permissions.contains({origins:[origins.crowdmark]}))void sync('crowdmark',false,false)});respond({ok:true});}return false;}handle(msg).then(value=>respond({ok:true,value})).catch(e=>respond({ok:false,error:e.message||String(e)}));return true});
 chrome.runtime.onInstalled.addListener(()=>{chrome.sidePanel.setPanelBehavior({openPanelOnActionClick:true});chrome.alarms.create('reminders',{periodInMinutes:1});chrome.alarms.create('sync',{periodInMinutes:30});});
 chrome.runtime.onStartup.addListener(()=>{chrome.alarms.create('reminders',{periodInMinutes:1});chrome.alarms.create('sync',{periodInMinutes:30})});
-chrome.alarms.onAlarm.addListener(alarm=>{if(alarm.name==='reminders')void notify().catch(()=>{});else if(alarm.name==='sync')void (async()=>{await refreshOnOpen(false)})()});
+chrome.alarms.onAlarm.addListener(alarm=>{if(alarm.name==='reminders')void notify().catch(()=>{});else if(alarm.name==='sync')void (async()=>{await refreshOnOpen(false,false)})()});
 
 // Returning from school sign-in retries failed sources without another Refresh click.
-chrome.tabs?.onUpdated?.addListener((_id,change,tab)=>{if(change.status!=='complete'||!tab.url||openedRun)return;const p=platforms.find(p=>p!=='cs135'&&tab.url?.startsWith(urls[p]));if(!p)return;void ready.then(async()=>{const status=(await loadState()).sources[p];if(status?.status==='error'&&/sign.in|signed.out|session.unreadable/i.test(status.error||''))void refreshOnOpen().catch(()=>{})})});
+chrome.tabs?.onUpdated?.addListener((_id,change,tab)=>{if(change.status!=='complete'||!tab.url||openedRun)return;const p=platforms.find(p=>p!=='cs135'&&tab.url?.startsWith(urls[p]));if(!p)return;void ready.then(async()=>{const status=(await loadState()).sources[p];if(status?.status==='error'&&/sign.in|signed.out|session.unreadable/i.test(status.error||''))void sync(p,false,false).catch(()=>{})})});

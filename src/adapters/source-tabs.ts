@@ -2,6 +2,12 @@ import {origins,urls,type Platform} from '../domain';
 export type SourcePlatform=Exclude<Platform,'manual'>;
 const remembered=new Map<SourcePlatform,number>();
 const opening=new Map<SourcePlatform,Promise<number>>();
+// Passive sync may only read a page the user already has loaded. Never revive,
+// create, activate or navigate a tab from this path.
+export async function existingSourceTab(p:SourcePlatform):Promise<number|undefined>{
+ const tabs=await chrome.tabs.query({url:p==='cs135'?'https://student.cs.uwaterloo.ca/~cs135/*':origins[p]});
+ return tabs.find(tab=>tab.id!=null&&!tab.discarded&&tab.status==='complete')?.id;
+}
 // A tab can disappear after acquisition, while a page or a grade table loads.
 // Only retry that lifecycle error; permission, sign-in and network errors propagate.
 export async function withSourceTab<T>(p:SourcePlatform,read:(id:number)=>Promise<T>,preferredId?:number):Promise<T>{
