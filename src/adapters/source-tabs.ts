@@ -18,6 +18,7 @@ export async function withSourceTab<T>(p:SourcePlatform,read:(id:number)=>Promis
 }
 // A single tab acquisition per source, shared by sync and the Open button.
 export async function sourceTab(p:SourcePlatform,activate=false):Promise<number>{
+ if(p==='mobius'){const id=await existingSourceTab(p);if(id==null)throw Error('mobius-settings-required');if(activate)await chrome.tabs.update(id,{active:true});return id}
  let job=opening.get(p);
  if(!job){job=(async()=>{
   const tabs=await chrome.tabs.query({url:p==='cs135'?'https://student.cs.uwaterloo.ca/~cs135/*':origins[p]});

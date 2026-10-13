@@ -45,7 +45,8 @@ function sync(p:Exclude<Platform,'manual'>,forceGrades=true,interactive=true):Pr
  const job=runSync(p,forceGrades,interactive).finally(()=>syncJobs.delete(p));syncJobs.set(p,{job,interactive});return job;
 }
 async function runSync(p:Exclude<Platform,'manual'>,forceGrades:boolean,interactive:boolean){
- await ready;if(p==='cs135'&&(await loadState()).settings.cs135Enabled!==true)return;
+ await ready;if(p==='mobius'&&(await loadState()).settings.mobiusEnabled!==true)return;
+ if(p==='cs135'&&(await loadState()).settings.cs135Enabled!==true)return;
  const existingTabId=!interactive&&p!=='cs135'?await existingSourceTab(p):undefined;
  if(!interactive&&p!=='cs135'&&existingTabId==null)return;
  const token=fence.capture(p);const started=Date.now();
@@ -53,11 +54,12 @@ async function runSync(p:Exclude<Platform,'manual'>,forceGrades:boolean,interact
   await mutateState(s=>({...s,sources:{...s.sources,[p]:{...s.sources[p],attempt:new Date().toISOString(),phase:'page',status:'syncing'}}}));
   const result=await withTimeout((async()=>{
    // The public CS135 calendar uses worker fetch and never needs a browser tab.
-   const tabId=p==='cs135'?undefined:interactive?await sourceTab(p,!(await loadState()).settings.onboardingComplete):existingTabId;
-   if(tabId!=null){await waitForTab(tabId);if(interactive)await autoLogin(p,tabId)}
+   const tabId=p==='cs135'?undefined:p==='mobius'?await existingSourceTab(p):interactive?await sourceTab(p,!(await loadState()).settings.onboardingComplete):existingTabId;
+   if(p==='mobius'&&tabId==null)throw Error('mobius-settings-required');
+   if(tabId!=null){await waitForTab(tabId);if(interactive&&p!=='mobius')await autoLogin(p,tabId)}
    await mutateState(s=>fence.current(p,token)?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:'tasks'}}}:s);
    try{return await readPlatform(p,await loadState(),forceGrades,tabId)}catch(e){
-    if(!interactive||tabId==null||!/signed.out|sign.in|session.unreadable|(?:^|\D)401(?:\D|$)/i.test(e instanceof Error?e.message:String(e)))throw e;
+    if(p==='mobius'||!interactive||tabId==null||!/signed.out|sign.in|session.unreadable|(?:^|\D)401(?:\D|$)/i.test(e instanceof Error?e.message:String(e)))throw e;
     await mutateState(s=>fence.current(p,token)?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:'page'}}}:s);
     await chrome.tabs.update(tabId,{url:urls[p]});await waitForTab(tabId);await autoLogin(p,tabId);return readPlatform(p,await loadState(),forceGrades,tabId);
    }
@@ -88,7 +90,7 @@ async function handle(msg:any){await ready;switch(msg.type){
  case 'state':return loadState();
  case 'sync':if(platforms.includes(msg.platform)){void sync(msg.platform);return {ok:true}}throw Error('platform');
  case 'schoolLogin':{if(typeof msg.enabled!=='boolean')throw Error('invalid');await configureSchoolLogin(msg.enabled);return mutateState(s=>({...s,settings:{...s.settings,schoolAutoNext:msg.enabled}}))}
- case 'settings':if(msg.patch?.cs135Enabled===false)fence.invalidate('cs135');return mutateState(s=>{const settings={...s.settings,...msg.patch};const next=validateBackup(JSON.stringify({...s,settings}));if(msg.patch?.cs135Enabled===false&&next.sources.cs135)next.sources.cs135={...next.sources.cs135,phase:undefined,status:next.sources.cs135.at?'ok':'idle',error:undefined};return next});
+ case 'settings':if(msg.patch?.mobiusEnabled===false)fence.invalidate('mobius');if(msg.patch?.cs135Enabled===false)fence.invalidate('cs135');return mutateState(s=>{const settings={...s.settings,...msg.patch};const next=validateBackup(JSON.stringify({...s,settings}));if(msg.patch?.mobiusEnabled===false&&next.sources.mobius)next.sources.mobius={...next.sources.mobius,phase:undefined,status:next.sources.mobius.at?'ok':'idle',error:undefined};if(msg.patch?.cs135Enabled===false&&next.sources.cs135)next.sources.cs135={...next.sources.cs135,phase:undefined,status:next.sources.cs135.at?'ok':'idle',error:undefined};return next});
  case 'overlay':return mutateState(s=>{const ids=Array.isArray(msg.ids)?msg.ids:[msg.id];const overlays={...s.overlays};for(const id of ids)if(s.entries.some(e=>e.id===id))overlays[id]={...overlays[id],...msg.patch};return {...s,overlays}});
  case 'manual':return mutateState(s=>{const entry=msg.entry as Entry;if(entry.platform!=='manual'||!entry.title.trim()||!safeUrl(entry.url)||!['exam','task'].includes(entry.type))throw Error('invalid');const next={...s,entries:[...s.entries.filter(e=>e.id!==entry.id),entry]};return validateBackup(JSON.stringify(next))});
  case 'delete':return mutateState(s=>({...s,entries:s.entries.filter(e=>!(e.id===msg.id&&e.platform==='manual'))}));
@@ -98,7 +100,7 @@ async function handle(msg:any){await ready;switch(msg.type){
  case 'clear':fence.invalidate();await configureSchoolLogin(false);return mutateState(s=>emptyState(s.settings.locale));
  case 'clearSource':if(!platforms.includes(msg.platform))throw Error('platform');fence.invalidate(msg.platform);return mutateState(s=>clearSource(s,msg.platform));
  case 'testNotification':{const s=await loadState();await chrome.notifications.create({type:'basic',iconUrl:'icon.png',title:'WatDesk',message:s.settings.locale==='zh-CN'?'考试与任务提醒已准备就绪。':'Your exam and task reminders are ready.'});return {ok:true}}
- case 'open':if(platforms.includes(msg.platform)){const id=await sourceTab(msg.platform,true);await waitForTab(id);await autoLogin(msg.platform,id);return {ok:true}}throw Error('platform');
+ case 'open':if(msg.platform==='mobius'){const existing=await existingSourceTab('mobius');if(existing!=null){await chrome.tabs.update(existing,{active:true});return {ok:true}}const id=await sourceTab('learn',true);await waitForTab(id);return {ok:true}}if(platforms.includes(msg.platform)){const id=await sourceTab(msg.platform,true);await waitForTab(id);await autoLogin(msg.platform,id);return {ok:true}}throw Error('platform');
  default:throw Error('message');}}
 chrome.runtime.onMessage.addListener((msg,sender,respond)=>{if(sender.id!==chrome.runtime.id)return false;if(sender.tab){if(msg?.type==='crowdmark:page'&&sender.tab.url?.startsWith('https://app.crowdmark.com/')){void ready.then(async()=>{const state=await loadState();if(!openedRun&&state.sources.crowdmark?.status!=='ok'&&await chrome.permissions.contains({origins:[origins.crowdmark]}))void sync('crowdmark',false,false)});respond({ok:true});}return false;}handle(msg).then(value=>respond({ok:true,value})).catch(e=>respond({ok:false,error:e.message||String(e)}));return true});
 chrome.runtime.onInstalled.addListener(()=>{chrome.sidePanel.setPanelBehavior({openPanelOnActionClick:true});chrome.alarms.create('reminders',{periodInMinutes:1});chrome.alarms.create('sync',{periodInMinutes:30});});
@@ -106,4 +108,4 @@ chrome.runtime.onStartup.addListener(()=>{chrome.alarms.create('reminders',{peri
 chrome.alarms.onAlarm.addListener(alarm=>{if(alarm.name==='reminders')void notify().catch(()=>{});else if(alarm.name==='sync')void (async()=>{await refreshOnOpen(false,false)})()});
 
 // Returning from school sign-in retries failed sources without another Refresh click.
-chrome.tabs?.onUpdated?.addListener((_id,change,tab)=>{if(change.status!=='complete'||!tab.url||openedRun)return;const p=platforms.find(p=>p!=='cs135'&&tab.url?.startsWith(urls[p]));if(!p)return;void ready.then(async()=>{const status=(await loadState()).sources[p];if(status?.status==='error'&&/sign.in|signed.out|session.unreadable/i.test(status.error||''))void sync(p,false,false).catch(()=>{})})});
+chrome.tabs?.onUpdated?.addListener((_id,change,tab)=>{if(change.status!=='complete'||!tab.url||openedRun)return;if(tab.url.startsWith('https://uwmo.mobius.cloud/')){void sync('mobius',false,false).catch(()=>{});return}const p=platforms.find(p=>p!=='mobius'&&p!=='cs135'&&tab.url?.startsWith(urls[p]));if(!p)return;void ready.then(async()=>{const status=(await loadState()).sources[p];if(status?.status==='error'&&/sign.in|signed.out|session.unreadable/i.test(status.error||''))void sync(p,false,false).catch(()=>{})})});

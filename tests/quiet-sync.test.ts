@@ -68,3 +68,13 @@ it('automatic public CS135 refresh never acquires a source tab',async()=>{
  ctx.alarm();await ctx.settle();expect(ctx.effects.create).not.toHaveBeenCalled();expect(ctx.state().sources.cs135.status).toBe('ok');
  expect(readers.read.mock.calls.map(c=>c[0])).toEqual(['cs135']);
 });
+it('Möbius is optional and manual refresh never launches an absent LTI page',async()=>{
+ const ctx=await setup();await ctx.send('sync',{platform:'mobius'});await new Promise(r=>setTimeout(r,10));expect(readers.read).not.toHaveBeenCalled();
+ ctx.state().settings.mobiusEnabled=true;await ctx.send('sync',{platform:'mobius'});await vi.waitFor(()=>expect(ctx.state().sources.mobius?.status).toBe('error'));
+ expect(ctx.effects.create).not.toHaveBeenCalled();expect(ctx.effects.update).not.toHaveBeenCalled();expect(readers.login).not.toHaveBeenCalled();
+});
+it('reading a user-opened Möbius page never navigates even on manual refresh',async()=>{
+ const ctx=await setup([{id:7,url:'https://uwmo.mobius.cloud/lti/advantage',status:'complete'}]);ctx.state().settings.mobiusEnabled=true;
+ await ctx.send('sync',{platform:'mobius'});await vi.waitFor(()=>expect(ctx.state().sources.mobius?.status).toBe('ok'));
+ expect(readers.read).toHaveBeenCalledWith('mobius',expect.anything(),true,7);expect(readers.login).not.toHaveBeenCalled();expect(ctx.effects.update).not.toHaveBeenCalled();
+});

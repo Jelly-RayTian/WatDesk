@@ -1,6 +1,6 @@
 import {Check} from '@phosphor-icons/react';
 import type {Platform} from '../domain';
-export const sourceName=(p:Platform)=>({learn:'Learn',crowdmark:'Crowdmark',odyssey:'Odyssey',cs135:'CS 135',manual:'Personal'}[p]);
+export const sourceName=(p:Platform)=>({learn:'Learn',crowdmark:'Crowdmark',odyssey:'Odyssey',cs135:'CS 135',mobius:'Möbius',manual:'Personal'}[p]);
 
 // Completed sources are determinate; the active source has no measurable byte total.
 export function SyncProgress({targets,completed,active,reading=[],failed,zh}:{targets:Platform[];completed:Platform[];active?:Platform;reading?:Platform[];failed?:Platform;zh:boolean}){

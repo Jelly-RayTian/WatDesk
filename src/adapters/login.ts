@@ -26,7 +26,7 @@ export async function clickPlatformLogin(p:string){
 }
 const jobs=new Map<number,Promise<void>>();
 export function autoLogin(p:SourcePlatform,tabId:number):Promise<void>{
- if(p==='cs135')return Promise.resolve();
+ if(p==='cs135'||p==='mobius')return Promise.resolve();
  const existing=jobs.get(tabId);if(existing)return existing;
  const job=(async()=>{
   let clickedAt='';let outside=0;

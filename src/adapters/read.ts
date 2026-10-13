@@ -1,4 +1,6 @@
 import {platforms,urls,origins,type Platform,type AppState,type Course,type Entry,type LearnReadIssue} from '../domain';
+import {readMobius} from './mobius';
+import {readLearnSchedule} from './learn-schedule';
 import {parseOdyssey,parseCs135Html} from './parsers';
 import {readCrowdmarkApi} from './crowdmark-api';
 import {retryFrame,waitForTab} from '../core/sync';
@@ -11,7 +13,7 @@ import {parseLearnGrades,parseLearnExams} from './learn-extras';
 import {needsGradeRefresh} from '../core/presentation';
 import {readLearnCourses} from './learn-batch';
 import {courseVisible} from '../core/academic';
-import {toolIssues,readLearnGradeBatch} from './learn-availability';
+import {learnIssue,toolIssues,readLearnGradeBatch} from './learn-availability';
 type ReaderPlatform=Exclude<Platform,'manual'>;
 export async function relay(p:ReaderPlatform,path:string,tabId?:number){
  if(!((p==='learn'&&path.startsWith('/d2l/'))||(p==='crowdmark'&&path.startsWith('/api/v2/student/')))||path.startsWith('//'))throw Error('path');
@@ -19,6 +21,7 @@ export async function relay(p:ReaderPlatform,path:string,tabId?:number){
 }
 export async function readPlatform(p:ReaderPlatform,state:AppState,forceGrades=false,existingTabId?:number):Promise<{entries:Entry[];courses:Course[];identity?:string;warning?:string;gradesAt?:string;issues?:LearnReadIssue[];courseReadAt?:Record<string,string>}>{
  if(!platforms.includes(p))throw Error('platform');if(!(await chrome.permissions.contains({origins:[origins[p]]})))throw Error('permission');
+ if(p==='mobius')return readMobius(state);
  if(p==='learn'){
   const tabId=existingTabId??await sourceTab('learn');
   const source=new LiveSource({school:'uwaterloo'},{relay:(_base:string,path:string)=>relay('learn',path,tabId)});
@@ -32,11 +35,13 @@ export async function readPlatform(p:ReaderPlatform,state:AppState,forceGrades=f
   const results=await readLearnCourses<any,any[]>(source,courses);
   for(const [index,result] of results.entries()){if(result.status==='rejected'){if(result.reason?.code==='signed-out'||result.reason?.status===401)throw Error('signed-out');failed++;continue}courseReadAt[courses[index].id]=stamp;for(const i of result.value)entries.push(fromReader(i,courses[index].code,'learn'))}
   if(failed)throw Error(`partial:${failed}`);
+  const scheduleIssues:LearnReadIssue[]=[];
+  for(const course of courses){try{const supplemental=await readLearnSchedule(source,course,tabId);for(const e of supplemental){if(!entries.some(i=>i.course===e.course&&i.title.trim().toLowerCase()===e.title.toLowerCase()&&i.due===e.due))entries.push(e)}}catch(e){scheduleIssues.push(learnIssue(course.code,'schedule',e));entries.push(...state.entries.filter(e=>e.platform==='learn'&&e.readerCourseId===String(course.id)&&e.seenIn?.includes('course-schedule')&&!e.gone).map(e=>({...e,readState:'retained' as const})))}}
   const exams=parseLearnExams(source.calendar?.events||[],visible);const examIds=new Set(exams.map(e=>e.id.split(':').at(-1)));
   const deadlines=entries.filter(e=>!examIds.has(e.id.match(/:content:cal(\d+)$/)?.[1]||''));deadlines.push(...exams);
   const previousGrades=state.entries.filter(e=>e.platform==='learn'&&e.gradeOnly&&!e.gone);let gradesAt=state.sources.learn?.gradesAt;
   const cachedCodes=new Set(listed.filter((c:any)=>cachedIds.has(String(c.id))).map((c:any)=>c.code));
-  const issues=[...toolIssues(source.report.courses),...(state.sources.learn?.issues||[]).filter(i=>i.tool!=='grades'&&cachedCodes.has(i.course))];
+  const issues=[...scheduleIssues,...toolIssues(source.report.courses),...(state.sources.learn?.issues||[]).filter(i=>i.tool!=='grades'&&cachedCodes.has(i.course))];
   if(needsGradeRefresh(gradesAt,forceGrades)){
    const grades=await readLearnGradeBatch(source,visible,previousGrades);deadlines.push(...grades.entries,...previousGrades.filter(e=>!visible.some((c:any)=>c.id===e.readerCourseId)).map(e=>({...e,readState:'retained' as const})));issues.push(...grades.issues);
    gradesAt=grades.retry?undefined:new Date().toISOString();
