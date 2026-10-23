@@ -50,11 +50,13 @@ export function validateBackup(text:string):AppState{
  const ids=new Set<string>();for(const e of s.entries){if(ids.has(e.id))throw Error('restoreError');ids.add(e.id);for(const k of ['location','seat','duration'])if(e[k]!==undefined&&typeof e[k]!=='string')throw Error('restoreError')}
  for(const c of s.courses)if(!c||typeof c.id!=='string'||typeof c.code!=='string'||typeof c.name!=='string'||c.term!==undefined&&typeof c.term!=='string')throw Error('restoreError');
  for(const o of Object.values(s.overlays) as any[]){if(!record(o)||o.note!==undefined&&typeof o.note!=='string'||o.linkedTo!=null&&typeof o.linkedTo!=='string'||o.keepSeparate!==undefined&&typeof o.keepSeparate!=='boolean'||o.done!==undefined&&typeof o.done!=='boolean'||o.hidden!==undefined&&typeof o.hidden!=='boolean')throw Error('restoreError')}
+
  for(const e of s.entries)if(e.gradeKind!==undefined&&!['assessment','overall','average','class-average'].includes(e.gradeKind))throw Error('restoreError');
  for(const st of Object.values(s.sources) as any[])if(!record(st)||!['idle','syncing','ok','error'].includes(st.status)||st.error!==undefined&&typeof st.error!=='string'||st.identity!==undefined&&typeof st.identity!=='string')throw Error('restoreError');
  for(const c of s.changes)if(!c||['id','title','at','before','after'].some(k=>typeof c[k]!=='string'))throw Error('restoreError');
  for(const v of Object.values(s.sent))if(typeof v!=='string')throw Error('restoreError');
  const validDate=(v:unknown)=>typeof v==='string'&&Number.isFinite(Date.parse(v));
+ for(const e of s.entries){if(e.submissionState!==undefined&&!['submitted','not-found','unknown'].includes(e.submissionState)||e.submittedAt!==undefined&&!validDate(e.submittedAt)||e.submissionCheckedAt!==undefined&&!validDate(e.submissionCheckedAt))throw Error('restoreError')}
  for(const e of s.entries)if(e.gradeKind!==undefined&&!['assessment','overall','average','class-average'].includes(e.gradeKind))throw Error('restoreError');
  for(const st of Object.values(s.sources) as any[])if(st.issues!==undefined&&(!Array.isArray(st.issues)||st.issues.some((i:any)=>!record(i)||typeof i.course!=='string'||typeof i.tool!=='string'||typeof i.code!=='string'||!['unavailable','failed'].includes(i.kind)||i.status!==undefined&&(!Number.isInteger(i.status)||i.status<0||i.status>599))))throw Error('restoreError');
  for(const e of s.entries)if(e.gradeKind!==undefined&&!['assessment','overall','average','class-average'].includes(e.gradeKind))throw Error('restoreError');

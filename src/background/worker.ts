@@ -49,38 +49,41 @@ async function runSync(p:Exclude<Platform,'manual'>,forceGrades:boolean,interact
  if(p==='cs135'&&(await loadState()).settings.cs135Enabled!==true)return;
  const existingTabId=!interactive&&p!=='cs135'?await existingSourceTab(p):undefined;
  if(!interactive&&p!=='cs135'&&existingTabId==null)return;
- const token=fence.capture(p);const started=Date.now();
+ const token=fence.capture(p);const started=Date.now();let cancelled=false;const current=()=>!cancelled&&fence.current(p,token);
  try{
   await mutateState(s=>({...s,sources:{...s.sources,[p]:{...s.sources[p],attempt:new Date().toISOString(),phase:'page',status:'syncing'}}}));
   const result=await withTimeout((async()=>{
-   // The public CS135 calendar uses worker fetch and never needs a browser tab.
-   const tabId=p==='cs135'?undefined:p==='mobius'?await existingSourceTab(p):interactive?await sourceTab(p,!(await loadState()).settings.onboardingComplete):existingTabId;
+   // Automatic CS135 reads use worker fetch; manual refresh opens View Submissions.
+   const tabId=p==='cs135'?(interactive?await sourceTab('cs135',true):undefined):p==='mobius'?await existingSourceTab(p):interactive?await sourceTab(p,!(await loadState()).settings.onboardingComplete):existingTabId;
    if(p==='mobius'&&tabId==null)throw Error('mobius-settings-required');
-   if(tabId!=null){await waitForTab(tabId);if(interactive&&p!=='mobius')await autoLogin(p,tabId)}
-   await mutateState(s=>fence.current(p,token)?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:'tasks'}}}:s);
+   if(!current())throw Error('sync-cancelled');
+   if(tabId!=null){await waitForTab(tabId);if(!current())throw Error('sync-cancelled');if(interactive&&p!=='mobius')await autoLogin(p,tabId)}
+   if(!current())throw Error('sync-cancelled');
+   await mutateState(s=>current()?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:'tasks'}}}:s);
    try{return await readPlatform(p,await loadState(),forceGrades,tabId)}catch(e){
+    if(!current())throw Error('sync-cancelled');
     if(p==='mobius'||!interactive||tabId==null||!/signed.out|sign.in|session.unreadable|(?:^|\D)401(?:\D|$)/i.test(e instanceof Error?e.message:String(e)))throw e;
-    await mutateState(s=>fence.current(p,token)?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:'page'}}}:s);
+    await mutateState(s=>current()?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:'page'}}}:s);
     await chrome.tabs.update(tabId,{url:urls[p]});await waitForTab(tabId);await autoLogin(p,tabId);return readPlatform(p,await loadState(),forceGrades,tabId);
    }
-  })(),180000);
-  await mutateState(s=>fence.current(p,token)?applySnapshot(s,p,result.entries,result.courses,{status:'ok',at:new Date().toISOString(),count:result.entries.length,identity:result.identity,error:result.warning||(p==='crowdmark'&&/^crowdmark-(?:grades|archive)/.test(s.sources[p]?.error||'')?s.sources[p]?.error:undefined),...(p==='learn'?{gradesAt:result.gradesAt,issues:result.issues,courseReadAt:result.courseReadAt}:{})}):s);
-  if(interactive&&p==='crowdmark'&&fence.current(p,token)&&needsGradeRefresh((await loadState()).sources[p]?.gradesAt,forceGrades)&&(forceGrades||Date.now()-Date.parse((await loadState()).sources[p]?.gradesAttemptAt||'1970-01-01')>=300000)){
-   await mutateState(s=>fence.current(p,token)?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:'grades',gradesAttemptAt:new Date().toISOString()}}}:s);
+  })(),interactive?180000:45000);
+  await mutateState(s=>current()?applySnapshot(s,p,result.entries,result.courses,{status:'ok',at:new Date().toISOString(),count:result.entries.length,identity:result.identity,error:result.warning||(p==='crowdmark'&&/^crowdmark-(?:grades|archive)/.test(s.sources[p]?.error||'')?s.sources[p]?.error:undefined),...(p==='learn'?{gradesAt:result.gradesAt,issues:result.issues,courseReadAt:result.courseReadAt}:{})}):s);
+  if(interactive&&p==='crowdmark'&&current()&&needsGradeRefresh((await loadState()).sources[p]?.gradesAt,forceGrades)&&(forceGrades||Date.now()-Date.parse((await loadState()).sources[p]?.gradesAttemptAt||'1970-01-01')>=300000)){
+   await mutateState(s=>current()?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:'grades',gradesAttemptAt:new Date().toISOString()}}}:s);
    try{
     const grades=await enrichCrowdmarkGrades(await loadState(),{force:forceGrades,onCourse:async part=>{
-     await mutateState(s=>{if(!fence.current(p,token))return s;const byUrl=new Map(part.entries.map(e=>[e.url,e]));const stamp=new Date().toISOString();const entries=s.entries.map(e=>{const fresh=e.platform===p?byUrl.get(e.url):undefined;if(!fresh)return e;byUrl.delete(e.url);return {...e,scorePercent:fresh.scorePercent,gradeStatus:fresh.gradeStatus,gradeText:fresh.gradeText,gradeVerifiedAt:stamp,gradeReadState:'fresh' as const}});entries.push(...[...byUrl.values()].map(e=>({...e,gradeVerifiedAt:stamp,gradeReadState:'fresh' as const})));return {...s,entries}});
+     await mutateState(s=>{if(!current())return s;const byUrl=new Map(part.entries.map(e=>[e.url,e]));const stamp=new Date().toISOString();const entries=s.entries.map(e=>{const fresh=e.platform===p?byUrl.get(e.url):undefined;if(!fresh)return e;byUrl.delete(e.url);return {...e,scorePercent:fresh.scorePercent,gradeStatus:fresh.gradeStatus,gradeText:fresh.gradeText,gradeVerifiedAt:stamp,gradeReadState:'fresh' as const}});entries.push(...[...byUrl.values()].map(e=>({...e,gradeVerifiedAt:stamp,gradeReadState:'fresh' as const})));return {...s,entries}});
     }});
     await mutateState(s=>{
-     if(!fence.current(p,token)||s.sources[p]?.status!=='ok')return s;
+     if(!current()||s.sources[p]?.status!=='ok')return s;
      const byUrl=new Map(grades.entries.map(e=>[e.url,e]));
      const entries=s.entries.map(e=>{if(e.platform!==p)return e;const grade=byUrl.get(e.url);if(!grade)return e;byUrl.delete(e.url);return {...e,scorePercent:grade.scorePercent,gradeStatus:grade.gradeStatus,gradeText:grade.gradeText,gradeVerifiedAt:grade.readState==='retained'?e.gradeVerifiedAt:new Date().toISOString(),gradeReadState:grade.readState||'fresh',verifiedAt:grade.readState==='retained'?e.verifiedAt:new Date().toISOString(),readState:grade.readState||'fresh'}});
      entries.push(...[...byUrl.values()].map(e=>({...e,gradeVerifiedAt:e.readState==='retained'?e.gradeVerifiedAt:new Date().toISOString(),gradeReadState:e.readState||'fresh' as const})));return {...s,entries,courses:[...new Map([...s.courses,...grades.courses].map(c=>[c.id,c])).values()],sources:{...s.sources,[p]:{...s.sources[p],count:entries.filter(e=>e.platform===p&&!e.gone).length,gradesAt:grades.warning?undefined:new Date().toISOString(),gradesArchiveAt:grades.archiveAt,error:grades.warning}}};
     });
-   }catch(e){await mutateState(s=>fence.current(p,token)&&s.sources[p]?.status==='ok'?{...s,sources:{...s.sources,[p]:{...s.sources[p],error:'crowdmark-grades-unavailable: '+(e instanceof Error?e.message:String(e))}}}:s)}
+   }catch(e){await mutateState(s=>current()&&s.sources[p]?.status==='ok'?{...s,sources:{...s.sources,[p]:{...s.sources[p],error:'crowdmark-grades-unavailable: '+(e instanceof Error?e.message:String(e))}}}:s)}
   }
- }catch(e){await mutateState(s=>fence.current(p,token)?({...s,sources:{...s.sources,[p]:{...s.sources[p],status:'error',error:e instanceof Error?e.message:String(e)}}}):s)}
- finally{await mutateState(s=>fence.current(p,token)?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:undefined,durationMs:Date.now()-started}}}:s);void notify().catch(()=>{})}
+ }catch(e){await mutateState(s=>current()?({...s,sources:{...s.sources,[p]:{...s.sources[p],phase:undefined,status:'error',error:e instanceof Error?e.message:String(e),durationMs:Date.now()-started}}}):s);cancelled=true}
+ finally{await mutateState(s=>current()?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:undefined,durationMs:Date.now()-started}}}:s);void notify().catch(()=>{})}
 }
 async function notifyExamChanges(){const state=await loadState();for(const {change,entry,key} of pendingExamChanges(state)){await chrome.notifications.create(key,{type:'basic',iconUrl:'icon.png',title:`${entry.course} ${entry.title}`,message:state.settings.locale==='zh-CN'?'考试时间、教室或座位有更新，请打开 WatDesk 核对。':'Exam time, room or seat changed. Open WatDesk to review.'});await mutateState(s=>({...s,sent:{...s.sent,[key]:change.at}}))}}
 let notifying=false;
@@ -102,10 +105,10 @@ async function handle(msg:any){await ready;switch(msg.type){
  case 'testNotification':{const s=await loadState();await chrome.notifications.create({type:'basic',iconUrl:'icon.png',title:'WatDesk',message:s.settings.locale==='zh-CN'?'考试与任务提醒已准备就绪。':'Your exam and task reminders are ready.'});return {ok:true}}
  case 'open':if(msg.platform==='mobius'){const existing=await existingSourceTab('mobius');if(existing!=null){await chrome.tabs.update(existing,{active:true});return {ok:true}}const id=await sourceTab('learn',true);await waitForTab(id);return {ok:true}}if(platforms.includes(msg.platform)){const id=await sourceTab(msg.platform,true);await waitForTab(id);await autoLogin(msg.platform,id);return {ok:true}}throw Error('platform');
  default:throw Error('message');}}
-chrome.runtime.onMessage.addListener((msg,sender,respond)=>{if(sender.id!==chrome.runtime.id)return false;if(sender.tab){if(msg?.type==='crowdmark:page'&&sender.tab.url?.startsWith('https://app.crowdmark.com/')){void ready.then(async()=>{const state=await loadState();if(!openedRun&&state.sources.crowdmark?.status!=='ok'&&await chrome.permissions.contains({origins:[origins.crowdmark]}))void sync('crowdmark',false,false)});respond({ok:true});}return false;}handle(msg).then(value=>respond({ok:true,value})).catch(e=>respond({ok:false,error:e.message||String(e)}));return true});
+chrome.runtime.onMessage.addListener((msg,sender,respond)=>{if(sender.id!==chrome.runtime.id)return false;if(sender.tab&&!sender.url?.startsWith('chrome-extension://'+chrome.runtime.id+'/')){if(msg?.type==='crowdmark:page'&&sender.tab.url?.startsWith('https://app.crowdmark.com/')){void ready.then(async()=>{const state=await loadState();if(!openedRun&&state.sources.crowdmark?.status!=='ok'&&await chrome.permissions.contains({origins:[origins.crowdmark]}))void sync('crowdmark',false,false)});respond({ok:true});}return false;}handle(msg).then(value=>respond({ok:true,value})).catch(e=>respond({ok:false,error:e.message||String(e)}));return true});
 chrome.runtime.onInstalled.addListener(()=>{chrome.sidePanel.setPanelBehavior({openPanelOnActionClick:true});chrome.alarms.create('reminders',{periodInMinutes:1});chrome.alarms.create('sync',{periodInMinutes:30});});
 chrome.runtime.onStartup.addListener(()=>{chrome.alarms.create('reminders',{periodInMinutes:1});chrome.alarms.create('sync',{periodInMinutes:30})});
 chrome.alarms.onAlarm.addListener(alarm=>{if(alarm.name==='reminders')void notify().catch(()=>{});else if(alarm.name==='sync')void (async()=>{await refreshOnOpen(false,false)})()});
 
 // Returning from school sign-in retries failed sources without another Refresh click.
-chrome.tabs?.onUpdated?.addListener((_id,change,tab)=>{if(change.status!=='complete'||!tab.url||openedRun)return;if(tab.url.startsWith('https://uwmo.mobius.cloud/')){void sync('mobius',false,false).catch(()=>{});return}const p=platforms.find(p=>p!=='mobius'&&p!=='cs135'&&tab.url?.startsWith(urls[p]));if(!p)return;void ready.then(async()=>{const status=(await loadState()).sources[p];if(status?.status==='error'&&/sign.in|signed.out|session.unreadable/i.test(status.error||''))void sync(p,false,false).catch(()=>{})})});
+chrome.tabs?.onUpdated?.addListener((_id,change,tab)=>{if(change.status!=='complete'||!tab.url||openedRun)return;if(tab.url.startsWith('https://student.cs.uwaterloo.ca/~cs135/assign/viewsubmissions/')){void sync('cs135',false,false).catch(()=>{});return}if(tab.url.startsWith('https://uwmo.mobius.cloud/')){void sync('mobius',false,false).catch(()=>{});return}const p=platforms.find(p=>p!=='mobius'&&p!=='cs135'&&tab.url?.startsWith(urls[p]));if(!p)return;void ready.then(async()=>{const status=(await loadState()).sources[p];if(status?.status==='error'&&/sign.in|signed.out|session.unreadable/i.test(status.error||''))void sync(p,false,false).catch(()=>{})})});

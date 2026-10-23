@@ -22,7 +22,7 @@ async function setup(tabs:any[]=[],onboardingComplete=true){
  const send=(type:string,extra:object={})=>new Promise<any>(resolve=>message({type,...extra},{id:'test'},resolve));
  await send('state');
  const settle=async()=>vi.waitFor(()=>expect(state.syncRun?.finished).toBe(true));
- return {state:()=>state,send,settle,alarm:()=>alarm({name:'sync'}),updated,effects,tabs};
+ return {sendExtensionPage:(url='chrome-extension://test/index.html')=>{const respond=vi.fn();message({type:'state'},{id:'test',tab:{id:99},url},respond);return respond},state:()=>state,send,settle,alarm:()=>alarm({name:'sync'}),updated,effects,tabs};
 }
 it('the timer leaves closed platforms closed and preserves saved data even during unfinished setup',async()=>{
  const ctx=await setup([],false);ctx.state().entries=[{id:'manual:exam',platform:'manual',course:'CS 135',title:'Final',type:'exam',start:'2026-12-15T00:30:00Z',end:null,due:null,status:'open',url:''}];
@@ -77,4 +77,22 @@ it('reading a user-opened Möbius page never navigates even on manual refresh',a
  const ctx=await setup([{id:7,url:'https://uwmo.mobius.cloud/lti/advantage',status:'complete'}]);ctx.state().settings.mobiusEnabled=true;
  await ctx.send('sync',{platform:'mobius'});await vi.waitFor(()=>expect(ctx.state().sources.mobius?.status).toBe('ok'));
  expect(readers.read).toHaveBeenCalledWith('mobius',expect.anything(),true,7);expect(readers.login).not.toHaveBeenCalled();expect(ctx.effects.update).not.toHaveBeenCalled();
+});
+
+it('accepts state requests from the extension full-page tab, while content pages remain isolated',async()=>{
+ const ctx=await setup();const respond=ctx.sendExtensionPage();await vi.waitFor(()=>expect(respond).toHaveBeenCalledWith(expect.objectContaining({ok:true,value:expect.objectContaining({schemaVersion:1})})));expect(ctx.sendExtensionPage('https://learn.uwaterloo.ca/d2l/home')).not.toHaveBeenCalled();
+});
+it('passive refresh skips frozen pages without waking or reading them',async()=>{
+ const ctx=await setup([{id:1,url:'https://learn.uwaterloo.ca/d2l/home',status:'complete',frozen:true}]);ctx.alarm();await ctx.settle();expect(readers.read).not.toHaveBeenCalled();expect(ctx.effects.update).not.toHaveBeenCalled();expect(ctx.effects.reload).not.toHaveBeenCalled();
+});
+it('manual CS135 refresh opens the submission page and reads its records',async()=>{
+ const ctx=await setup();ctx.state().settings.cs135Enabled=true;await ctx.send('sync',{platform:'cs135'});await vi.waitFor(()=>expect(ctx.state().sources.cs135?.status).toBe('ok'));expect(ctx.effects.create).toHaveBeenCalledWith({url:'https://student.cs.uwaterloo.ca/~cs135/assign/viewsubmissions/index.html',active:false});expect(readers.read.mock.calls[0][0]).toBe('cs135');
+});
+it('a timed-out sign-in cannot restart reading after the source has stopped',async()=>{
+ vi.useFakeTimers();try{
+  const ctx=await setup();let release!:()=>void;readers.login.mockImplementation((p:string)=>p==='learn'?new Promise<void>(resolve=>{release=resolve}):Promise.resolve());
+  await ctx.send('refreshOnOpen',{force:true});await vi.advanceTimersByTimeAsync(1);expect(ctx.state().sources.learn.phase).toBe('page');
+  await vi.advanceTimersByTimeAsync(180001);expect(ctx.state().sources.learn).toMatchObject({status:'error',error:'sync-timeout',phase:undefined});
+  release();await vi.advanceTimersByTimeAsync(1);expect(ctx.state().sources.learn.phase).toBeUndefined();expect(readers.read.mock.calls.some(c=>c[0]==='learn')).toBe(false);
+ }finally{vi.useRealTimers()}
 });

@@ -1,4 +1,5 @@
 import {platforms,urls,origins,type Platform,type AppState,type Course,type Entry,type LearnReadIssue} from '../domain';
+import {enrichCs135Submissions,readCs135Submissions} from './cs135-submissions';
 import {readMobius} from './mobius';
 import {readLearnSchedule} from './learn-schedule';
 import {parseOdyssey,parseCs135Html} from './parsers';
@@ -50,7 +51,7 @@ export async function readPlatform(p:ReaderPlatform,state:AppState,forceGrades=f
   return {entries:retainIncomplete(state.entries.filter(e=>!e.gradeOnly&&!e.gone),[...new Map(deadlines.map(e=>[e.id,e])).values()],source.readOk),gradesAt,issues,courseReadAt,courses:listed.map((c:any)=>({id:`learn:${c.id}`,code:c.code,name:c.name||c.code,term:(c.name||'').match(/(?:Fall|Winter|Spring)\s+\d{4}/i)?.[0]})),identity:session.student?.name,warning:failures.length?`learn-partial: ${failures.map(i=>`${i.course}/${i.tool}/${i.status||i.code}`).join('; ')}`:undefined};
  }
  if(p==='crowdmark')return readCrowdmarkApi(state);
- if(p==='cs135'){const r=await fetch(urls.cs135+'calendar/index.html',{signal:AbortSignal.timeout(20000),cache:'no-store'});if(!r.ok)throw Error('cs135-http:'+r.status);return {entries:parseCs135Html(await r.text()),courses:[{id:'cs135:web',code:'CS 135',name:'Designing Functional Programs'}]}}
+ if(p==='cs135'){const r=await fetch(urls.cs135+'calendar/index.html',{signal:AbortSignal.timeout(20000),cache:'no-store'});if(!r.ok)throw Error('cs135-http:'+r.status);const calendar=parseCs135Html(await r.text()),submissions=await readCs135Submissions();return {entries:enrichCs135Submissions(calendar,state.entries,submissions,new Date().toISOString()),identity:submissions?.identity,warning:!submissions?'cs135-submissions-unavailable':!submissions.complete?'cs135-submissions-partial':undefined,courses:[{id:'cs135:web',code:'CS 135',name:'Designing Functional Programs'}]}}
  const tabId=existingTabId??await sourceTab(p);await waitForTab(tabId);
  const [result]=await chrome.scripting.executeScript({target:{tabId},func:async(p:string)=>{
   const target=p==='odyssey'?'/teaching/schedule':'/~cs135/calendar/index.html';const r=await fetch(target,{credentials:'include',signal:AbortSignal.timeout(20000)});if(!r.ok||new URL(r.url).hostname!==location.hostname)throw Error('signed-out');const html=await r.text();const doc=new DOMParser().parseFromString(html,'text/html');

@@ -66,3 +66,15 @@ Automatic sync no longer opens Learn, Crowdmark or Odyssey tabs. It only reads e
 Learn now supplements Module Quiz deadlines from file-type Course Schedule topics. Möbius is an optional source with access limited to `https://uwmo.mobius.cloud/*`: enable it, then manually open an activity’s View Policies page from LEARN. WatDesk reads only settings metadata on already-loaded pages, never starts an attempt or requests an exception, and never navigates or opens Möbius even during manual refresh. Availability windows remain task deadlines; the per-attempt time limit is displayed separately. Only explicit submission/completion status counts as submitted; attempts used, content viewed and “results recorded” settings do not. Matching Learn/Möbius tasks merge into one calendar event and reminder while retaining the time limit. Previously seen settings remain saved when a different activity is read.
 
 新增可选 Möbius 来源，读取你从 LEARN 手动打开的「查看设置」页；Course Schedule 补齐 Module 1–12 Quiz 日期。开放窗口与单次限时分别显示，与 Learn 相同任务合并，仅提醒一次。不会自动打开网页、开始测验、请求例外或提交答案。
+
+## 1.1.1
+
+CS135 tasks now read actual timestamped source-file records from an already-loaded Assignments → View Submissions page. The latest record marks that assignment as submitted, matched by assignment number and academic term. Basic-test results and marksheet links alone do not imply submission or a final grade. Without a readable page, saved submission confirmations are retained and unchecked tasks are labeled unknown. Opening the CS135 source explicitly goes to View Submissions; background refresh never opens or navigates tabs. The reader collects submission metadata only and never opens source files or submits work.
+
+## 1.1.2
+
+Allow the extension’s own full-page tab to request state from its worker, while keeping content-page messages isolated. Loading failures now show a diagnostic and the installed extension version, making a browser data refresh distinguishable from reloading the extension itself.
+
+## 1.1.3
+
+Skip frozen source tabs during quiet background reads; explicit refresh may activate a frozen source and manually opens CS135 View Submissions. Bound CS135/Möbius page collection to five seconds and passive source runs to 45 seconds. Once a read times out, late sign-in/page responses cannot resurrect its reading phase or overwrite a later sync. Timed-out and interrupted reads show actionable explanations while retaining saved data.
