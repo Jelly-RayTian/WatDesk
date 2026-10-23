@@ -7,7 +7,7 @@ const opening=new Map<SourcePlatform,Promise<number>>();
 // create, activate or navigate a tab from this path.
 export async function existingSourceTab(p:SourcePlatform):Promise<number|undefined>{
  const tabs=await chrome.tabs.query({url:p==='cs135'?'https://student.cs.uwaterloo.ca/~cs135/*':origins[p]});
- return tabs.find(tab=>tab.id!=null&&!tab.discarded&&tab.status==='complete')?.id;
+ return tabs.find(tab=>tab.id!=null&&!tab.discarded&&!tab.frozen&&tab.status==='complete')?.id;
 }
 // A tab can disappear after acquisition, while a page or a grade table loads.
 // Only retry that lifecycle error; permission, sign-in and network errors propagate.
@@ -27,7 +27,7 @@ export async function sourceTab(p:SourcePlatform,activate=false):Promise<number>
   tabs.sort((a,b)=>Number(b.url?.startsWith(landing))-Number(a.url?.startsWith(landing))||Number(b.active)-Number(a.active));
   const previous=remembered.get(p);
   const tab=tabs[0]||(previous?await chrome.tabs.get(previous).catch(()=>undefined):undefined);
-  if(tab?.id){remembered.set(p,tab.id);if(tab.discarded)await chrome.tabs.reload(tab.id);return tab.id}
+  if(tab?.id){remembered.set(p,tab.id);if(tab.discarded)await chrome.tabs.reload(tab.id);else if(tab.frozen)await chrome.tabs.update(tab.id,{active:true});return tab.id}
   const created=await chrome.tabs.create({url:landing,active:false});
   if(!created.id)throw Error('needs-page');remembered.set(p,created.id);return created.id;
  })().finally(()=>opening.delete(p));opening.set(p,job)}

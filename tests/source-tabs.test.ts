@@ -16,3 +16,6 @@ it('the CS135 Open button opens View Submissions rather than the public course h
  const create=vi.fn().mockResolvedValue({id:17}),update=vi.fn().mockResolvedValue({});vi.stubGlobal('chrome',{tabs:{query:async()=>[],create,get:async()=>({id:17,url:'https://student.cs.uwaterloo.ca/~cs135/assign/viewsubmissions/index.html'}),update}});
  await sourceTab('cs135',true);expect(create).toHaveBeenCalledWith({url:'https://student.cs.uwaterloo.ca/~cs135/assign/viewsubmissions/index.html',active:false});expect(update).toHaveBeenCalledWith(17,{active:true});vi.unstubAllGlobals();
 });
+it('manual source acquisition thaws an existing frozen page without creating duplicates',async()=>{
+ const update=vi.fn().mockResolvedValue({});vi.stubGlobal('chrome',{tabs:{query:async()=>[{id:28,url:'https://learn.uwaterloo.ca/d2l/home',frozen:true,status:'complete'}],update}});expect(await sourceTab('learn')).toBe(28);expect(update).toHaveBeenCalledWith(28,{active:true});vi.unstubAllGlobals();
+});

@@ -1,4 +1,5 @@
 import type {Entry,AppState} from '../domain';
+import {withTimeout} from '../core/sync';
 import {campusInstant} from '../core/util';
 export interface MobiusSettings {course:string;title:string;rows:string[][]}
 function date(text:string):string|null{
@@ -27,9 +28,9 @@ export function mergeMobiusSnapshot(previous:Entry[],fresh:Entry[]):Entry[]{cons
 export async function readMobius(state:AppState){
  if(!state.settings.mobiusEnabled)throw Error('mobius-disabled');
  const tabs=await chrome.tabs.query({url:'https://uwmo.mobius.cloud/*'});const entries:Entry[]=[];
- for(const tab of tabs){if(tab.id==null||tab.discarded||tab.status!=='complete')continue;
+ for(const tab of tabs){if(tab.id==null||tab.discarded||tab.frozen||tab.status!=='complete')continue;
   // Inject a read-only metadata collector; it never clicks or fetches the LTI launch.
-  try{const [result]=await chrome.scripting.executeScript({target:{tabId:tab.id},func:collectMobiusSettings});
+  try{const [result]=await withTimeout(chrome.scripting.executeScript({target:{tabId:tab.id},func:collectMobiusSettings}),5000);
   const entry=result?.result&&parseMobiusSettings(result.result);if(entry)entries.push(entry)}catch{/* Keep other readable settings pages and previously saved records. */}
  }
  if(!entries.length)throw Error('mobius-settings-required');

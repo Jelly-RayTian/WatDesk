@@ -24,3 +24,9 @@ it('only reads existing loaded View Submissions pages, never opens or reloads a 
  const executeScript=vi.fn(),create=vi.fn(),reload=vi.fn();vi.stubGlobal('chrome',{tabs:{query:async()=>[{id:1,discarded:true,status:'complete'}],create,reload},scripting:{executeScript}});
  expect(await readCs135Submissions()).toBeNull();expect(executeScript).not.toHaveBeenCalled();expect(create).not.toHaveBeenCalled();expect(reload).not.toHaveBeenCalled();
 });
+it('stops a page injection that never responds instead of reading forever',async()=>{
+ vi.useFakeTimers();try{
+  vi.stubGlobal('chrome',{tabs:{query:async()=>[{id:1,status:'complete',discarded:false}]},scripting:{executeScript:()=>new Promise(()=>{})}});
+  const read=readCs135Submissions();await vi.advanceTimersByTimeAsync(5001);expect(await read).toBeNull();
+ }finally{vi.useRealTimers()}
+});

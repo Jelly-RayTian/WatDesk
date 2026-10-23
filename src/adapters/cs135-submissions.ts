@@ -1,4 +1,5 @@
 import type {Entry} from '../domain';
+import {withTimeout} from '../core/sync';
 import {campusInstant} from '../core/util';
 export const cs135SubmissionsUrl='https://student.cs.uwaterloo.ca/~cs135/assign/viewsubmissions/index.html';
 export interface Cs135Submissions {identity:string;complete:boolean;records:Array<{assignment:string;at:string}>}
@@ -44,11 +45,11 @@ export function enrichCs135Submissions(entries:Entry[],previous:Entry[],snapshot
 export async function readCs135Submissions():Promise<Cs135Submissions|null>{
  try{
   const tabs=await chrome.tabs.query({url:'https://student.cs.uwaterloo.ca/~cs135/assign/viewsubmissions/*'});
-  const loaded=tabs.filter(t=>t.id!=null&&!t.discarded&&t.status==='complete');if(!loaded.length)return null;
+  const loaded=tabs.filter(t=>t.id!=null&&!t.discarded&&!t.frozen&&t.status==='complete');if(!loaded.length)return null;
   const snapshots:Cs135Submissions[]=[];
   for(const tab of loaded){try{
    for(let attempt=0;attempt<12;attempt++){
-    const [result]=await chrome.scripting.executeScript({target:{tabId:tab.id!},func:collectCs135Submissions});
+    const [result]=await withTimeout(chrome.scripting.executeScript({target:{tabId:tab.id!},func:collectCs135Submissions}),5000);
     if(result?.result){snapshots.push(result.result);break}
     if(attempt<11)await new Promise(resolve=>setTimeout(resolve,150));
    }
