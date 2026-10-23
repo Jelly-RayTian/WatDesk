@@ -70,3 +70,7 @@ Learn now supplements Module Quiz deadlines from file-type Course Schedule topic
 ## 1.1.1
 
 CS135 tasks now read actual timestamped source-file records from an already-loaded Assignments → View Submissions page. The latest record marks that assignment as submitted, matched by assignment number and academic term. Basic-test results and marksheet links alone do not imply submission or a final grade. Without a readable page, saved submission confirmations are retained and unchecked tasks are labeled unknown. Opening the CS135 source explicitly goes to View Submissions; background refresh never opens or navigates tabs. The reader collects submission metadata only and never opens source files or submits work.
+
+## 1.1.2
+
+Allow the extension’s own full-page tab to request state from its worker, while keeping content-page messages isolated. Loading failures now show a diagnostic and the installed extension version, making a browser data refresh distinguishable from reloading the extension itself.
