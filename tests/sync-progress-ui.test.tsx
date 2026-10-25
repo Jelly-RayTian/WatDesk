@@ -31,3 +31,6 @@ it('animates every concurrent source while counting only completed platforms',()
  const html=renderToStaticMarkup(<BackgroundSync state={state} retry={()=>{}} details={()=>{}}/>);
  expect(html).toContain('2 个平台同时读取中');expect(html.match(/sync-progress-segment reading/g)).toHaveLength(2);expect(html).toContain('aria-valuenow="1"');
 });
+
+it('keeps update details available when a source fails',()=>{const state=emptyState('zh-CN');state.syncRun={started:Date.now(),targets:['learn','crowdmark'],completed:['learn'],finished:true};state.sources.crowdmark={status:'error',error:'signed-out'};const html=renderToStaticMarkup(<BackgroundSync state={state} retry={()=>{}} details={()=>{}}/>);expect(html).toContain('更新详情');expect(html).toContain('继续重试')});
+it('ignores disabled sources left over from an older sync run',()=>{const state=emptyState('zh-CN');state.settings.mobiusEnabled=false;state.syncRun={started:Date.now(),targets:['learn','mobius'],completed:['learn'],finished:true};state.sources.mobius={status:'error',error:'mobius-settings-required'};state.sources.learn={status:'ok'};const html=renderToStaticMarkup(<BackgroundSync state={state} retry={()=>{}} details={()=>{}}/>);expect(html).not.toContain('Möbius 更新失败');expect(html).toContain('更新详情')});

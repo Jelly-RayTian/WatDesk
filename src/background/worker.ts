@@ -1,6 +1,8 @@
 import {emptyState,platforms,urls,origins,type AppState,type Platform,type Entry} from '../domain';
 import {loadState,mutateState,applySnapshot,clearSource} from '../core/state';
 import {planReminders,exportIcs,validateBackup,safeUrl} from '../core/util';
+import {enrichCrowdmarkGrades} from '../adapters/crowdmark-api';
+import {isTemporaryTab} from '../adapters/temporary-tab';
 import {readPlatform} from '../adapters/read';
 import {withTimeout,recoverInterrupted} from '../core/sync';
 import {SyncFence} from '../core/fence';
@@ -47,21 +49,36 @@ function sync(p:Exclude<Platform,'manual'>,forceGrades=true,interactive=true):Pr
 async function runSync(p:Exclude<Platform,'manual'>,forceGrades:boolean,interactive:boolean){
  await ready;if(!interactive&&syncMinutes((await loadState()).settings)===0)return;if(p==='mobius'&&(await loadState()).settings.mobiusEnabled!==true)return;
  if(p==='cs135'&&(await loadState()).settings.cs135Enabled!==true)return;
- const token=fence.capture(p);const started=Date.now();let cancelled=false;const current=()=>!cancelled&&fence.current(p,token);
+ const token=fence.capture(p);const started=Date.now();const controller=new AbortController();let cancelled=false;const current=()=>!cancelled&&fence.current(p,token);
  try{
   await mutateState(s=>({...s,sources:{...s.sources,[p]:{...s.sources[p],attempt:new Date().toISOString(),phase:'page',status:'syncing'}}}));
   const result=await withTimeout((async()=>{
-   // Sync never acquires, activates, reloads or navigates a browser tab.
+   // API reads use existing sessions; rendered grades use a separate, inactive temporary tab.
    const tabId=await existingSourceTab(p);
    if(p==='mobius'&&tabId==null)throw Error('mobius-settings-required');
    if(!current())throw Error('sync-cancelled');
    await mutateState(s=>current()?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:'tasks'}}}:s);
-   return readPlatform(p,await loadState(),forceGrades,tabId);
-  })(),interactive?180000:45000);
-  await mutateState(s=>current()?applySnapshot(s,p,result.entries,result.courses,{status:'ok',at:new Date().toISOString(),count:result.entries.length,identity:result.identity,error:result.warning||(p==='crowdmark'&&/^crowdmark-(?:grades|archive)/.test(s.sources[p]?.error||'')?s.sources[p]?.error:undefined),...(p==='learn'?{gradesAt:result.gradesAt,issues:result.issues,courseReadAt:result.courseReadAt}:{})}):s);
+   const result=await readPlatform(p,await loadState(),forceGrades,tabId);
+   if(p==='crowdmark'&&current()){
+    await mutateState(s=>current()?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:'grades'}}}:s);
+    try{
+     const saved=await loadState();const grades=await enrichCrowdmarkGrades({...saved,entries:[...saved.entries.filter(e=>e.platform!=='crowdmark'),...result.entries]}, {force:forceGrades,temporary:true,signal:controller.signal});
+     if(!current())throw Error('sync-cancelled');
+     if(saved.sources.crowdmark?.identity&&grades.identity&&saved.sources.crowdmark.identity!==grades.identity)throw Error('identityChanged');
+     const byUrl=new Map(grades.entries.map(e=>[e.url,e]));const stamp=new Date().toISOString();
+     const gradeFields=(e:Entry)=>({scorePercent:e.scorePercent,gradeStatus:e.gradeStatus,gradeText:e.gradeText,gradeVerifiedAt:e.readState==='retained'?e.gradeVerifiedAt:stamp,gradeReadState:e.readState==='retained'?'retained' as const:'fresh' as const});
+     result.entries=result.entries.map(e=>{const grade=byUrl.get(e.url);if(!grade)return e;byUrl.delete(e.url);return {...e,...gradeFields(grade),status:grade.status==='submitted'?'submitted' as const:e.status}});
+     result.entries.push(...[...byUrl.values()].map(e=>({...e,...gradeFields(e)})));
+     result.courses=[...new Map([...result.courses,...grades.courses].map(c=>[c.id,c])).values()];
+     result.identity=grades.identity;result.warning=result.warning||grades.warning;result.gradesAt=grades.warning?undefined:stamp;
+    }catch(e){if(e instanceof Error&&e.message==='identityChanged')throw e;result.warning='crowdmark-grades-unavailable: '+(e instanceof Error?e.message:String(e))}
+   }
+   return result;
+  })(),p==='crowdmark'||interactive?180000:45000);
+  await mutateState(s=>current()?applySnapshot(s,p,result.entries,result.courses,{status:'ok',at:new Date().toISOString(),count:result.entries.length,identity:result.identity,error:result.warning,...(p==='crowdmark'?{gradesAt:result.gradesAt}:{}),...(p==='learn'?{gradesAt:result.gradesAt,issues:result.issues,courseReadAt:result.courseReadAt}:{})}):s);
 
  }catch(e){await mutateState(s=>current()?({...s,sources:{...s.sources,[p]:{...s.sources[p],phase:undefined,status:'error',error:e instanceof Error?e.message:String(e),durationMs:Date.now()-started}}}):s);cancelled=true}
- finally{await mutateState(s=>current()?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:undefined,durationMs:Date.now()-started}}}:s);void notify().catch(()=>{})}
+ finally{controller.abort();await mutateState(s=>current()?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:undefined,durationMs:Date.now()-started}}}:s);void notify().catch(()=>{})}
 }
 async function notifyExamChanges(){const state=await loadState();for(const {change,entry,key} of pendingExamChanges(state)){await chrome.notifications.create(key,{type:'basic',iconUrl:'icon.png',title:`${entry.course} ${entry.title}`,message:state.settings.locale==='zh-CN'?'考试时间、教室或座位有更新，请打开 WatDesk 核对。':'Exam time, room or seat changed. Open WatDesk to review.'});await mutateState(s=>({...s,sent:{...s.sent,[key]:change.at}}))}}
 let notifying=false;
@@ -89,4 +106,4 @@ chrome.runtime.onStartup.addListener(()=>{chrome.alarms.create('reminders',{peri
 chrome.alarms.onAlarm.addListener(alarm=>{if(alarm.name==='reminders')void notify().catch(()=>{});else if(alarm.name==='sync')void refreshOnOpen(false,false,true).catch(()=>{})});
 
 // Returning from school sign-in retries failed sources without another Refresh click.
-chrome.tabs?.onUpdated?.addListener((_id,change,tab)=>{if(change.status!=='complete'||!tab.url||openedRun)return;if(tab.url.startsWith('https://student.cs.uwaterloo.ca/~cs135/assign/viewsubmissions/')){void sync('cs135',false,false).catch(()=>{});return}if(tab.url.startsWith('https://uwmo.mobius.cloud/')){void sync('mobius',false,false).catch(()=>{});return}const p=platforms.find(p=>p!=='mobius'&&p!=='cs135'&&tab.url?.startsWith(urls[p]));if(!p)return;void ready.then(async()=>{const status=(await loadState()).sources[p];if(status?.status==='error'&&/sign.in|signed.out|session.unreadable/i.test(status.error||''))void sync(p,false,false).catch(()=>{})})});
+chrome.tabs?.onUpdated?.addListener((_id,change,tab)=>{if(isTemporaryTab(_id)||change.status!=='complete'||!tab.url||openedRun)return;if(tab.url.startsWith('https://student.cs.uwaterloo.ca/~cs135/assign/viewsubmissions/')){void sync('cs135',false,false).catch(()=>{});return}if(tab.url.startsWith('https://uwmo.mobius.cloud/')){void sync('mobius',false,false).catch(()=>{});return}const p=platforms.find(p=>p!=='mobius'&&p!=='cs135'&&tab.url?.startsWith(urls[p]));if(!p)return;void ready.then(async()=>{const status=(await loadState()).sources[p];if(status?.status==='error'&&/sign.in|signed.out|session.unreadable/i.test(status.error||''))void sync(p,false,false).catch(()=>{})})});

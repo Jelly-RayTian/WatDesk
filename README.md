@@ -88,3 +88,11 @@ Automatic sync defaults to **6 hours**, including profiles upgrading from the ol
 CS135 attempts a background metadata read, then uses already-loaded View Submissions pages if needed. If the server supplies only a JavaScript shell or the login expires, existing submission confirmations stay saved and unverified tasks remain unknown. Möbius still requires an already-loaded settings page. Crowdmark tasks refresh through its API; grades are checked on already-loaded course pages, with other saved grades retained and labeled accordingly. Quiet sync does not browse courses or archives to retrieve grades.
 
 手动刷新与定时同步均不再弹出、激活或跳转平台标签页。临时后台解析页面用完即关闭，你自己打开的页面保持原样。默认每 6 小时同步，可在「设置 → 自动同步」调整；登录过期或部分信息无法静默核实时，保留历史结果并显示提示。
+
+## 1.2.1 — restore complete background checks and show quizzes in Exams
+
+Crowdmark refresh again checks rendered grades for current courses and, when due, the archive. It uses a separate inactive temporary tab, leaves user tabs untouched, and closes its own tab on success, error, cancellation or timeout. The page reader never activates a tab or focuses a window. The six-hour default and configurable sync interval remain.
+
+Online quizzes from LEARN, including Course Schedule Module Quizzes, now also appear on the Exams page. They keep their original task records, calendar events and deadline reminders; no duplicate exam record is created. Cards show both opening and closing dates and any known attempt limit. Availability windows do not participate in fixed exam time-conflict checks. Past quizzes remain available under Show past exams.
+
+Update details remains available alongside Retry after a source failure. Disabled optional sources are excluded from the progress banner, including failures saved by an older run. Möbius remains optional; LEARN quiz dates do not require enabling it.

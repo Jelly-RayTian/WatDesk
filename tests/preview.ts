@@ -45,6 +45,10 @@ if(new URLSearchParams(location.search).has('mobius')){
  s.entries=[{...quiz,id:'learn:sample-quiz',platform:'learn',duration:undefined},quiz];
  s.sources.mobius={status:'ok',at:new Date().toISOString(),count:1};
 }
+if(new URLSearchParams(location.search).has('econquiz')){
+ s.settings.onboardingComplete=true;s.settings.mobiusEnabled=false;
+ s.entries=[{id:'learn:schedule:sample:module-7-quiz',platform:'learn',readerCourseId:'sample',course:'ECON 101',title:'Module 7 Quiz',type:'task',category:'quiz',start:'2026-10-28T12:00:00Z',due:'2026-10-31T03:00:00Z',end:null,status:'open',url:'https://learn.uwaterloo.ca/d2l/home',seenIn:['course-schedule']}];
+}
 // Opt-in observation of the native animation during local visual checks.
 if(new URLSearchParams(location.search).has('motioncheck')){
  const nativeAnimate=Element.prototype.animate;

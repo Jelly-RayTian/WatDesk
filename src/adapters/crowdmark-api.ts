@@ -1,4 +1,4 @@
-import {readLoadedCrowdmarkGrades} from './quiet-grades';
+import {withTemporaryTab} from './temporary-tab';
 import type {AppState,Course,Entry} from '../domain';
 // Unmodified upstream WATnow reader; MIT attribution ships with the plugin.
 // @ts-ignore vendored JavaScript boundary
@@ -19,7 +19,6 @@ export async function readCrowdmarkApi(state:AppState){
  // Upstream reads current-term deadlines. Retain history and failed-course data.
  const urls=new Set(entries.map(e=>e.url));
  entries.push(...state.entries.filter(e=>e.platform==='crowdmark'&&!e.gone&&!urls.has(e.url)&&(!readSlugs.has(e.readerCourseId||'')||e.scorePercent!=null||e.due==null)).map(e=>({...e,readState:'retained' as const})));
- const graded=await readLoadedCrowdmarkGrades(entries);
- return {entries:retainCrowdmarkIds(graded,state.entries),courses,warning:result.failedCourseIds.size?'crowdmark-partial: Previous records retained.':graded.some(e=>e.gradeReadState!=='fresh')?'crowdmark-grades-unavailable':undefined};
+ return {entries:retainCrowdmarkIds(entries,state.entries),courses,warning:result.failedCourseIds.size?'crowdmark-partial: Previous records retained.':undefined};
 }
-export async function enrichCrowdmarkGrades(state:AppState,options:Parameters<typeof readCrowdmarkPages>[2]={}){return readCrowdmarkPages(state,undefined,options)}
+export async function enrichCrowdmarkGrades(state:AppState,options:NonNullable<Parameters<typeof readCrowdmarkPages>[2]>&{temporary?:boolean;signal?:AbortSignal}={}){if(!options.temporary)return readCrowdmarkPages(state,undefined,options);return withTemporaryTab('https://app.crowdmark.com/student/courses',page=>readCrowdmarkPages(state,undefined,{...options,page}),{signal:options.signal,timeout:125000})}

@@ -40,9 +40,9 @@ it('a failed platform does not stop other sources from completing',async()=>{
  expect(ctx.state().syncRun).toMatchObject({failed:'crowdmark',finished:true});expect(ctx.state().sources.crowdmark.error).toBe('signed-out');vi.unstubAllGlobals();
 });
 
-it('never invokes grade browsing during sync',async()=>{
+it('uses temporary grade pages on automatic and manual refresh',async()=>{
  const ctx=await setup(true);ctx.state().sources.crowdmark={status:'ok',gradesAt:new Date().toISOString()};mocked.read.mockResolvedValue({entries:[],courses:[]});
- await ctx.message('refreshOnOpen');expect(mocked.grades).not.toHaveBeenCalled();await ctx.message('refreshOnOpen',{force:true});expect(mocked.grades).not.toHaveBeenCalled();vi.unstubAllGlobals();
+ await ctx.message('refreshOnOpen');expect(mocked.grades).toHaveBeenCalledTimes(1);expect(mocked.grades).toHaveBeenCalledWith(expect.anything(),expect.objectContaining({temporary:true}));await ctx.message('refreshOnOpen',{force:true});expect(mocked.grades).toHaveBeenCalledTimes(2);vi.unstubAllGlobals();
 });
 
 it('reuses recent successful results without opening source pages and manual refresh bypasses cache',async()=>{
