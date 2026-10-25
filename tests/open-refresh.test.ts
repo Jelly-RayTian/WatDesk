@@ -40,9 +40,9 @@ it('a failed platform does not stop other sources from completing',async()=>{
  expect(ctx.state().syncRun).toMatchObject({failed:'crowdmark',finished:true});expect(ctx.state().sources.crowdmark.error).toBe('signed-out');vi.unstubAllGlobals();
 });
 
-it('avoids re-reading recent grade history on opening but refreshes it on demand',async()=>{
+it('never invokes grade browsing during sync',async()=>{
  const ctx=await setup(true);ctx.state().sources.crowdmark={status:'ok',gradesAt:new Date().toISOString()};mocked.read.mockResolvedValue({entries:[],courses:[]});
- await ctx.message('refreshOnOpen');expect(mocked.grades).not.toHaveBeenCalled();await ctx.message('refreshOnOpen',{force:true});expect(mocked.grades).toHaveBeenCalledTimes(1);vi.unstubAllGlobals();
+ await ctx.message('refreshOnOpen');expect(mocked.grades).not.toHaveBeenCalled();await ctx.message('refreshOnOpen',{force:true});expect(mocked.grades).not.toHaveBeenCalled();vi.unstubAllGlobals();
 });
 
 it('reuses recent successful results without opening source pages and manual refresh bypasses cache',async()=>{
@@ -52,7 +52,7 @@ it('reuses recent successful results without opening source pages and manual ref
 });
 it('an individual retry reads only that platform and keeps the last successful data on failure',async()=>{
  const ctx=await setup(true);ctx.state().sources.learn={status:'ok',at:'2026-10-10T12:00:00Z'};mocked.read.mockRejectedValue(Error('signed-out'));
- await ctx.message('sync',{platform:'learn'});await vi.waitFor(()=>expect(ctx.state().sources.learn.status).toBe('error'));await vi.waitFor(()=>expect(ctx.state().sources.learn.phase).toBeUndefined());expect(ctx.state().sources.learn.at).toBe('2026-10-10T12:00:00Z');expect(mocked.read.mock.calls.map(c=>c[0])).toEqual(['learn','learn']);vi.unstubAllGlobals();
+ await ctx.message('sync',{platform:'learn'});await vi.waitFor(()=>expect(ctx.state().sources.learn.status).toBe('error'));await vi.waitFor(()=>expect(ctx.state().sources.learn.phase).toBeUndefined());expect(ctx.state().sources.learn.at).toBe('2026-10-10T12:00:00Z');expect(mocked.read.mock.calls.map(c=>c[0])).toEqual(['learn']);vi.unstubAllGlobals();
 });
 
 it('acknowledges background refresh immediately and skips CS135 unless selected',async()=>{
@@ -60,9 +60,9 @@ it('acknowledges background refresh immediately and skips CS135 unless selected'
  const reply=await ctx.rawMessage('refreshOnOpen');expect(reply.ok).toBe(true);await vi.waitFor(()=>expect(mocked.read).toHaveBeenCalledTimes(3));expect(ctx.state().syncRun?.finished).toBe(false);release({entries:[],courses:[]});await vi.waitFor(()=>expect(ctx.state().syncRun?.finished).toBe(true));expect(mocked.read.mock.calls.map(c=>c[0])).toEqual(['learn','crowdmark','odyssey']);vi.unstubAllGlobals();
 });
 
-it('reopens the same canonical page once and retries after an expired API session',async()=>{
- const ctx=await setup(true);mocked.read.mockRejectedValueOnce(Error('signed-out')).mockResolvedValue({entries:[],courses:[]});
- await ctx.message('sync',{platform:'learn'});await vi.waitFor(()=>expect(ctx.state().sources.learn.status).toBe('ok'));expect(chrome.tabs.update).toHaveBeenCalledWith(1,{url:'https://learn.uwaterloo.ca/d2l/home'});expect(mocked.read).toHaveBeenCalledTimes(2);vi.unstubAllGlobals();
+it('reports an expired session without opening or retrying the login page',async()=>{
+ const ctx=await setup(true);mocked.read.mockRejectedValue(Error('signed-out'));
+ await ctx.message('sync',{platform:'learn'});await vi.waitFor(()=>expect(ctx.state().sources.learn.status).toBe('error'));expect(chrome.tabs.update).not.toHaveBeenCalled();expect(mocked.read).toHaveBeenCalledTimes(1);vi.unstubAllGlobals();
 });
 
 it('sends an exam-change notification after sync and records it so it is not repeated',async()=>{
@@ -77,4 +77,4 @@ it('disabling CS135 clears an interrupted in-progress marker',async()=>{
  const ctx=await setup(true);ctx.state().sources.cs135={status:'syncing',phase:'tasks'};await ctx.message('settings',{patch:{cs135Enabled:false}});expect(ctx.state().sources.cs135.phase).toBeUndefined();expect(ctx.state().sources.cs135.status).toBe('idle');vi.unstubAllGlobals();
 });
 
-it('activates first-setup pages and opens CS135 submissions while preserving other loaded core pages',async()=>{const ctx=await setup(true);mocked.read.mockResolvedValue({entries:[],courses:[]});await ctx.message('refreshOnOpen');expect(mocked.tab.mock.calls.every(c=>c[1]===true)).toBe(true);ctx.state().settings.onboardingComplete=true;mocked.tab.mockClear();await ctx.message('refreshOnOpen',{force:true});expect(mocked.tab.mock.calls.filter(c=>c[0]!=='cs135').every(c=>c[1]===false)).toBe(true);expect(mocked.tab).toHaveBeenCalledWith('cs135',true);vi.unstubAllGlobals()});
+it('first setup and later manual refresh never acquire source tabs',async()=>{const ctx=await setup(true);mocked.read.mockResolvedValue({entries:[],courses:[]});await ctx.message('refreshOnOpen');expect(mocked.tab).not.toHaveBeenCalled();ctx.state().settings.onboardingComplete=true;await ctx.message('refreshOnOpen',{force:true});expect(mocked.tab).not.toHaveBeenCalled();vi.unstubAllGlobals()});

@@ -78,3 +78,13 @@ Allow the extension’s own full-page tab to request state from its worker, whil
 ## 1.1.3
 
 Skip frozen source tabs during quiet background reads; explicit refresh may activate a frozen source and manually opens CS135 View Submissions. Bound CS135/Möbius page collection to five seconds and passive source runs to 45 seconds. Once a read times out, late sign-in/page responses cannot resurrect its reading phase or overwrite a later sync. Timed-out and interrupted reads show actionable explanations while retaining saved data.
+
+## 1.2.0 — quiet reads and configurable sync
+
+Manual and automatic refresh no longer create, activate, reload or navigate source tabs. Learn and Crowdmark use their existing authenticated background readers; Odyssey and Learn schedules use a bundled, short-lived offscreen DOM parser. The parser closes after each operation, including failures. Existing user tabs are never closed. Login expiry is reported inside WatDesk; use Open website to sign in explicitly.
+
+Automatic sync defaults to **6 hours**, including profiles upgrading from the old fixed 30-minute timer. Settings → Automatic sync offers 30 minutes, 1/2/6/12/24 hours or Manual only. Changing the interval updates the browser alarm; ordinary worker restarts preserve the next run. Opening the workspace reuses recent successful data for the selected interval; Refresh bypasses that cache. Scheduled runs do not skip a cycle merely because the previous read finished a few seconds after its alarm. Browser shutdown/sleep can delay alarms.
+
+CS135 attempts a background metadata read, then uses already-loaded View Submissions pages if needed. If the server supplies only a JavaScript shell or the login expires, existing submission confirmations stay saved and unverified tasks remain unknown. Möbius still requires an already-loaded settings page. Crowdmark tasks refresh through its API; grades are checked on already-loaded course pages, with other saved grades retained and labeled accordingly. Quiet sync does not browse courses or archives to retrieve grades.
+
+手动刷新与定时同步均不再弹出、激活或跳转平台标签页。临时后台解析页面用完即关闭，你自己打开的页面保持原样。默认每 6 小时同步，可在「设置 → 自动同步」调整；登录过期或部分信息无法静默核实时，保留历史结果并显示提示。

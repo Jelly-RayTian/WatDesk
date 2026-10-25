@@ -1,36 +1,36 @@
 import {emptyState,platforms,urls,origins,type AppState,type Platform,type Entry} from '../domain';
 import {loadState,mutateState,applySnapshot,clearSource} from '../core/state';
 import {planReminders,exportIcs,validateBackup,safeUrl} from '../core/util';
-import {enrichCrowdmarkGrades} from '../adapters/crowdmark-api';
 import {readPlatform} from '../adapters/read';
 import {withTimeout,recoverInterrupted} from '../core/sync';
 import {SyncFence} from '../core/fence';
 import {sourceTab,existingSourceTab} from '../adapters/source-tabs';
 import {configureSchoolLogin} from './school-login';
 import {autoLogin} from '../adapters/login';
-import {needsGradeRefresh} from '../core/presentation';
 import {waitForTab} from '../core/sync';
 import {enabledPlatforms} from '../core/onboarding';
 import {pendingExamChanges} from '../core/organization';
+import {syncMinutes,configureSyncSchedule} from './sync-schedule';
 import {canReuseSource} from '../core/refresh-policy';
 const fence=new SyncFence();const syncJobs=new Map<string,{job:Promise<void>;interactive:boolean}>();
 const ready=mutateState(recoverInterrupted);
-void ready.then(s=>configureSchoolLogin(s.settings.schoolAutoNext===true)).catch(()=>{});
+void ready.then(async s=>{await configureSchoolLogin(s.settings.schoolAutoNext===true);await configureSyncSchedule(s.settings)}).catch(()=>{});
 let openedRun:Promise<unknown>|undefined;let openedInteractive=false;
-async function refreshOnOpen(forceGrades=false,interactive?:boolean){
+async function refreshOnOpen(forceGrades=false,interactive?:boolean,scheduled=false){
  await ready;interactive??=forceGrades||!(await loadState()).settings.onboardingComplete;
- if(openedRun){if(interactive&&!openedInteractive){await openedRun;return refreshOnOpen(forceGrades,interactive)}return openedRun}
+ if(openedRun){if(interactive&&!openedInteractive){await openedRun;return refreshOnOpen(forceGrades,interactive,scheduled)}return openedRun}
  openedInteractive=interactive;
  openedRun=(async()=>{
   const targets:Exclude<Platform,'manual'>[]=[];
   for(const p of enabledPlatforms(await loadState())){
+   if(!forceGrades&&syncMinutes((await loadState()).settings)===0)continue;
    if(!await chrome.permissions.contains({origins:[origins[p]]}))continue;
-   if(!interactive&&p!=='cs135'&&await existingSourceTab(p)==null)continue;
    targets.push(p);
   }
   await mutateState(s=>({...s,syncRun:{started:Date.now(),targets,completed:[],reused:[],finished:false}}));
   await Promise.allSettled(targets.map(async p=>{
-   if(canReuseSource(p,(await loadState()).sources[p],forceGrades)){
+   const state=await loadState();
+   if(!scheduled&&canReuseSource(p,state.sources[p],forceGrades,Date.now(),syncMinutes(state.settings))){
     await mutateState(s=>({...s,syncRun:{...s.syncRun!,completed:[...new Set([...s.syncRun!.completed,p])],reused:[...s.syncRun!.reused||[],p]}}));return;
    }
    await sync(p,forceGrades,interactive);
@@ -45,43 +45,21 @@ function sync(p:Exclude<Platform,'manual'>,forceGrades=true,interactive=true):Pr
  const job=runSync(p,forceGrades,interactive).finally(()=>syncJobs.delete(p));syncJobs.set(p,{job,interactive});return job;
 }
 async function runSync(p:Exclude<Platform,'manual'>,forceGrades:boolean,interactive:boolean){
- await ready;if(p==='mobius'&&(await loadState()).settings.mobiusEnabled!==true)return;
+ await ready;if(!interactive&&syncMinutes((await loadState()).settings)===0)return;if(p==='mobius'&&(await loadState()).settings.mobiusEnabled!==true)return;
  if(p==='cs135'&&(await loadState()).settings.cs135Enabled!==true)return;
- const existingTabId=!interactive&&p!=='cs135'?await existingSourceTab(p):undefined;
- if(!interactive&&p!=='cs135'&&existingTabId==null)return;
  const token=fence.capture(p);const started=Date.now();let cancelled=false;const current=()=>!cancelled&&fence.current(p,token);
  try{
   await mutateState(s=>({...s,sources:{...s.sources,[p]:{...s.sources[p],attempt:new Date().toISOString(),phase:'page',status:'syncing'}}}));
   const result=await withTimeout((async()=>{
-   // Automatic CS135 reads use worker fetch; manual refresh opens View Submissions.
-   const tabId=p==='cs135'?(interactive?await sourceTab('cs135',true):undefined):p==='mobius'?await existingSourceTab(p):interactive?await sourceTab(p,!(await loadState()).settings.onboardingComplete):existingTabId;
+   // Sync never acquires, activates, reloads or navigates a browser tab.
+   const tabId=await existingSourceTab(p);
    if(p==='mobius'&&tabId==null)throw Error('mobius-settings-required');
    if(!current())throw Error('sync-cancelled');
-   if(tabId!=null){await waitForTab(tabId);if(!current())throw Error('sync-cancelled');if(interactive&&p!=='mobius')await autoLogin(p,tabId)}
-   if(!current())throw Error('sync-cancelled');
    await mutateState(s=>current()?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:'tasks'}}}:s);
-   try{return await readPlatform(p,await loadState(),forceGrades,tabId)}catch(e){
-    if(!current())throw Error('sync-cancelled');
-    if(p==='mobius'||!interactive||tabId==null||!/signed.out|sign.in|session.unreadable|(?:^|\D)401(?:\D|$)/i.test(e instanceof Error?e.message:String(e)))throw e;
-    await mutateState(s=>current()?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:'page'}}}:s);
-    await chrome.tabs.update(tabId,{url:urls[p]});await waitForTab(tabId);await autoLogin(p,tabId);return readPlatform(p,await loadState(),forceGrades,tabId);
-   }
+   return readPlatform(p,await loadState(),forceGrades,tabId);
   })(),interactive?180000:45000);
   await mutateState(s=>current()?applySnapshot(s,p,result.entries,result.courses,{status:'ok',at:new Date().toISOString(),count:result.entries.length,identity:result.identity,error:result.warning||(p==='crowdmark'&&/^crowdmark-(?:grades|archive)/.test(s.sources[p]?.error||'')?s.sources[p]?.error:undefined),...(p==='learn'?{gradesAt:result.gradesAt,issues:result.issues,courseReadAt:result.courseReadAt}:{})}):s);
-  if(interactive&&p==='crowdmark'&&current()&&needsGradeRefresh((await loadState()).sources[p]?.gradesAt,forceGrades)&&(forceGrades||Date.now()-Date.parse((await loadState()).sources[p]?.gradesAttemptAt||'1970-01-01')>=300000)){
-   await mutateState(s=>current()?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:'grades',gradesAttemptAt:new Date().toISOString()}}}:s);
-   try{
-    const grades=await enrichCrowdmarkGrades(await loadState(),{force:forceGrades,onCourse:async part=>{
-     await mutateState(s=>{if(!current())return s;const byUrl=new Map(part.entries.map(e=>[e.url,e]));const stamp=new Date().toISOString();const entries=s.entries.map(e=>{const fresh=e.platform===p?byUrl.get(e.url):undefined;if(!fresh)return e;byUrl.delete(e.url);return {...e,scorePercent:fresh.scorePercent,gradeStatus:fresh.gradeStatus,gradeText:fresh.gradeText,gradeVerifiedAt:stamp,gradeReadState:'fresh' as const}});entries.push(...[...byUrl.values()].map(e=>({...e,gradeVerifiedAt:stamp,gradeReadState:'fresh' as const})));return {...s,entries}});
-    }});
-    await mutateState(s=>{
-     if(!current()||s.sources[p]?.status!=='ok')return s;
-     const byUrl=new Map(grades.entries.map(e=>[e.url,e]));
-     const entries=s.entries.map(e=>{if(e.platform!==p)return e;const grade=byUrl.get(e.url);if(!grade)return e;byUrl.delete(e.url);return {...e,scorePercent:grade.scorePercent,gradeStatus:grade.gradeStatus,gradeText:grade.gradeText,gradeVerifiedAt:grade.readState==='retained'?e.gradeVerifiedAt:new Date().toISOString(),gradeReadState:grade.readState||'fresh',verifiedAt:grade.readState==='retained'?e.verifiedAt:new Date().toISOString(),readState:grade.readState||'fresh'}});
-     entries.push(...[...byUrl.values()].map(e=>({...e,gradeVerifiedAt:e.readState==='retained'?e.gradeVerifiedAt:new Date().toISOString(),gradeReadState:e.readState||'fresh' as const})));return {...s,entries,courses:[...new Map([...s.courses,...grades.courses].map(c=>[c.id,c])).values()],sources:{...s.sources,[p]:{...s.sources[p],count:entries.filter(e=>e.platform===p&&!e.gone).length,gradesAt:grades.warning?undefined:new Date().toISOString(),gradesArchiveAt:grades.archiveAt,error:grades.warning}}};
-    });
-   }catch(e){await mutateState(s=>current()&&s.sources[p]?.status==='ok'?{...s,sources:{...s.sources,[p]:{...s.sources[p],error:'crowdmark-grades-unavailable: '+(e instanceof Error?e.message:String(e))}}}:s)}
-  }
+
  }catch(e){await mutateState(s=>current()?({...s,sources:{...s.sources,[p]:{...s.sources[p],phase:undefined,status:'error',error:e instanceof Error?e.message:String(e),durationMs:Date.now()-started}}}):s);cancelled=true}
  finally{await mutateState(s=>current()?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:undefined,durationMs:Date.now()-started}}}:s);void notify().catch(()=>{})}
 }
@@ -93,22 +71,22 @@ async function handle(msg:any){await ready;switch(msg.type){
  case 'state':return loadState();
  case 'sync':if(platforms.includes(msg.platform)){void sync(msg.platform);return {ok:true}}throw Error('platform');
  case 'schoolLogin':{if(typeof msg.enabled!=='boolean')throw Error('invalid');await configureSchoolLogin(msg.enabled);return mutateState(s=>({...s,settings:{...s.settings,schoolAutoNext:msg.enabled}}))}
- case 'settings':if(msg.patch?.mobiusEnabled===false)fence.invalidate('mobius');if(msg.patch?.cs135Enabled===false)fence.invalidate('cs135');return mutateState(s=>{const settings={...s.settings,...msg.patch};const next=validateBackup(JSON.stringify({...s,settings}));if(msg.patch?.mobiusEnabled===false&&next.sources.mobius)next.sources.mobius={...next.sources.mobius,phase:undefined,status:next.sources.mobius.at?'ok':'idle',error:undefined};if(msg.patch?.cs135Enabled===false&&next.sources.cs135)next.sources.cs135={...next.sources.cs135,phase:undefined,status:next.sources.cs135.at?'ok':'idle',error:undefined};return next});
+ case 'settings':{if(msg.patch?.mobiusEnabled===false)fence.invalidate('mobius');if(msg.patch?.cs135Enabled===false)fence.invalidate('cs135');const saved=await mutateState(s=>{const settings={...s.settings,...msg.patch};const next=validateBackup(JSON.stringify({...s,settings}));if(msg.patch?.mobiusEnabled===false&&next.sources.mobius)next.sources.mobius={...next.sources.mobius,phase:undefined,status:next.sources.mobius.at?'ok':'idle',error:undefined};if(msg.patch?.cs135Enabled===false&&next.sources.cs135)next.sources.cs135={...next.sources.cs135,phase:undefined,status:next.sources.cs135.at?'ok':'idle',error:undefined};return next});await configureSyncSchedule(saved.settings);return saved;}
  case 'overlay':return mutateState(s=>{const ids=Array.isArray(msg.ids)?msg.ids:[msg.id];const overlays={...s.overlays};for(const id of ids)if(s.entries.some(e=>e.id===id))overlays[id]={...overlays[id],...msg.patch};return {...s,overlays}});
  case 'manual':return mutateState(s=>{const entry=msg.entry as Entry;if(entry.platform!=='manual'||!entry.title.trim()||!safeUrl(entry.url)||!['exam','task'].includes(entry.type))throw Error('invalid');const next={...s,entries:[...s.entries.filter(e=>e.id!==entry.id),entry]};return validateBackup(JSON.stringify(next))});
  case 'delete':return mutateState(s=>({...s,entries:s.entries.filter(e=>!(e.id===msg.id&&e.platform==='manual'))}));
  case 'ics':return exportIcs(await loadState());
  case 'backup':return JSON.stringify(await loadState(),null,2);
- case 'restore':{const data=validateBackup(msg.text);fence.invalidate();await configureSchoolLogin(data.settings.schoolAutoNext===true).catch(()=>{});return mutateState(()=>recoverInterrupted(data))}
- case 'clear':fence.invalidate();await configureSchoolLogin(false);return mutateState(s=>emptyState(s.settings.locale));
+ case 'restore':{const data=validateBackup(msg.text);fence.invalidate();await configureSchoolLogin(data.settings.schoolAutoNext===true).catch(()=>{});const saved=await mutateState(()=>recoverInterrupted(data));await configureSyncSchedule(saved.settings);return saved}
+ case 'clear':{fence.invalidate();await configureSchoolLogin(false);const saved=await mutateState(s=>emptyState(s.settings.locale));await configureSyncSchedule(saved.settings);return saved;}
  case 'clearSource':if(!platforms.includes(msg.platform))throw Error('platform');fence.invalidate(msg.platform);return mutateState(s=>clearSource(s,msg.platform));
  case 'testNotification':{const s=await loadState();await chrome.notifications.create({type:'basic',iconUrl:'icon.png',title:'WatDesk',message:s.settings.locale==='zh-CN'?'考试与任务提醒已准备就绪。':'Your exam and task reminders are ready.'});return {ok:true}}
  case 'open':if(msg.platform==='mobius'){const existing=await existingSourceTab('mobius');if(existing!=null){await chrome.tabs.update(existing,{active:true});return {ok:true}}const id=await sourceTab('learn',true);await waitForTab(id);return {ok:true}}if(platforms.includes(msg.platform)){const id=await sourceTab(msg.platform,true);await waitForTab(id);await autoLogin(msg.platform,id);return {ok:true}}throw Error('platform');
  default:throw Error('message');}}
-chrome.runtime.onMessage.addListener((msg,sender,respond)=>{if(sender.id!==chrome.runtime.id)return false;if(sender.tab&&!sender.url?.startsWith('chrome-extension://'+chrome.runtime.id+'/')){if(msg?.type==='crowdmark:page'&&sender.tab.url?.startsWith('https://app.crowdmark.com/')){void ready.then(async()=>{const state=await loadState();if(!openedRun&&state.sources.crowdmark?.status!=='ok'&&await chrome.permissions.contains({origins:[origins.crowdmark]}))void sync('crowdmark',false,false)});respond({ok:true});}return false;}handle(msg).then(value=>respond({ok:true,value})).catch(e=>respond({ok:false,error:e.message||String(e)}));return true});
-chrome.runtime.onInstalled.addListener(()=>{chrome.sidePanel.setPanelBehavior({openPanelOnActionClick:true});chrome.alarms.create('reminders',{periodInMinutes:1});chrome.alarms.create('sync',{periodInMinutes:30});});
-chrome.runtime.onStartup.addListener(()=>{chrome.alarms.create('reminders',{periodInMinutes:1});chrome.alarms.create('sync',{periodInMinutes:30})});
-chrome.alarms.onAlarm.addListener(alarm=>{if(alarm.name==='reminders')void notify().catch(()=>{});else if(alarm.name==='sync')void (async()=>{await refreshOnOpen(false,false)})()});
+chrome.runtime.onMessage.addListener((msg,sender,respond)=>{if(sender.id!==chrome.runtime.id||msg?.target==='offscreen')return false;if(sender.tab&&!sender.url?.startsWith('chrome-extension://'+chrome.runtime.id+'/')){if(msg?.type==='crowdmark:page'&&sender.tab.url?.startsWith('https://app.crowdmark.com/')){void ready.then(async()=>{const state=await loadState();if(!openedRun&&state.sources.crowdmark?.status!=='ok'&&await chrome.permissions.contains({origins:[origins.crowdmark]}))void sync('crowdmark',false,false)});respond({ok:true});}return false;}handle(msg).then(value=>respond({ok:true,value})).catch(e=>respond({ok:false,error:e.message||String(e)}));return true});
+chrome.runtime.onInstalled.addListener(()=>{chrome.sidePanel.setPanelBehavior({openPanelOnActionClick:true});chrome.alarms.create('reminders',{periodInMinutes:1});void ready.then(s=>configureSyncSchedule(s.settings)).catch(()=>{});});
+chrome.runtime.onStartup.addListener(()=>{chrome.alarms.create('reminders',{periodInMinutes:1});void ready.then(s=>configureSyncSchedule(s.settings)).catch(()=>{})});
+chrome.alarms.onAlarm.addListener(alarm=>{if(alarm.name==='reminders')void notify().catch(()=>{});else if(alarm.name==='sync')void refreshOnOpen(false,false,true).catch(()=>{})});
 
 // Returning from school sign-in retries failed sources without another Refresh click.
 chrome.tabs?.onUpdated?.addListener((_id,change,tab)=>{if(change.status!=='complete'||!tab.url||openedRun)return;if(tab.url.startsWith('https://student.cs.uwaterloo.ca/~cs135/assign/viewsubmissions/')){void sync('cs135',false,false).catch(()=>{});return}if(tab.url.startsWith('https://uwmo.mobius.cloud/')){void sync('mobius',false,false).catch(()=>{});return}const p=platforms.find(p=>p!=='mobius'&&p!=='cs135'&&tab.url?.startsWith(urls[p]));if(!p)return;void ready.then(async()=>{const status=(await loadState()).sources[p];if(status?.status==='error'&&/sign.in|signed.out|session.unreadable/i.test(status.error||''))void sync(p,false,false).catch(()=>{})})});

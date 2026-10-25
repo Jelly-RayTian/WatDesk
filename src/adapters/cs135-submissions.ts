@@ -4,8 +4,8 @@ import {campusInstant} from '../core/util';
 export const cs135SubmissionsUrl='https://student.cs.uwaterloo.ca/~cs135/assign/viewsubmissions/index.html';
 export interface Cs135Submissions {identity:string;complete:boolean;records:Array<{assignment:string;at:string}>}
 // Serialized into the existing page. Read metadata only; never follow source-file links.
-export function collectCs135Submissions():Cs135Submissions|null{
- const root=document.querySelector('#submissionsDiv');if(!root)return null;
+export function collectCs135Submissions(rootDocument:Document=document):Cs135Submissions|null{
+ const root=rootDocument.querySelector('#submissionsDiv');if(!root)return null;
  const accounts=new Set<string>();const records:Cs135Submissions['records']=[];let complete=true,sections=0;
  for(const heading of root.querySelectorAll('h3')){
   const assignment=heading.textContent?.trim().toLowerCase();if(!assignment||!/^a\d{2}$/.test(assignment))continue;

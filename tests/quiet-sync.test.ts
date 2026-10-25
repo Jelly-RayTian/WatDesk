@@ -27,11 +27,11 @@ async function setup(tabs:any[]=[],onboardingComplete=true){
 it('the timer leaves closed platforms closed and preserves saved data even during unfinished setup',async()=>{
  const ctx=await setup([],false);ctx.state().entries=[{id:'manual:exam',platform:'manual',course:'CS 135',title:'Final',type:'exam',start:'2026-12-15T00:30:00Z',end:null,due:null,status:'open',url:''}];
  ctx.alarm();await ctx.settle();
- expect(ctx.effects.create).not.toHaveBeenCalled();expect(ctx.effects.update).not.toHaveBeenCalled();expect(ctx.effects.focus).not.toHaveBeenCalled();expect(readers.read).not.toHaveBeenCalled();expect(ctx.state().entries[0].title).toBe('Final');
+ expect(ctx.effects.create).not.toHaveBeenCalled();expect(ctx.effects.update).not.toHaveBeenCalled();expect(ctx.effects.focus).not.toHaveBeenCalled();expect(readers.read).toHaveBeenCalledTimes(3);expect(ctx.state().entries[0].title).toBe('Final');
 });
 it('opening a returning user workspace does not create tabs or wake discarded pages',async()=>{
  const ctx=await setup([{id:1,url:'https://learn.uwaterloo.ca/d2l/home',discarded:true,status:'complete'}]);
- await ctx.send('refreshOnOpen');await ctx.settle();expect(ctx.effects.create).not.toHaveBeenCalled();expect(ctx.effects.reload).not.toHaveBeenCalled();expect(readers.read).not.toHaveBeenCalled();
+ await ctx.send('refreshOnOpen');await ctx.settle();expect(ctx.effects.create).not.toHaveBeenCalled();expect(ctx.effects.reload).not.toHaveBeenCalled();expect(readers.read).toHaveBeenCalledTimes(3);
 });
 it('passive reads save new data using existing tabs without login, navigation or grade browsing',async()=>{
  const ctx=await setup([{id:1,url:'https://learn.uwaterloo.ca/d2l/home',status:'complete'},{id:2,url:'https://app.crowdmark.com/student/courses',status:'complete'},{id:3,url:'https://odyssey.uwaterloo.ca/teaching/schedule',status:'complete'}]);
@@ -50,23 +50,23 @@ it('returning from Learn sign-in retries only Learn without opening other platfo
  ctx.updated(1,{status:'complete'},{url:'https://learn.uwaterloo.ca/d2l/home'});await vi.waitFor(()=>expect(ctx.state().sources.learn.status).toBe('ok'));
  expect(readers.read.mock.calls.map(c=>c[0])).toEqual(['learn']);expect(ctx.effects.create).not.toHaveBeenCalled();expect(readers.login).not.toHaveBeenCalled();
 });
-it('explicit Refresh can still open missing source pages and read fresh data',async()=>{
- const ctx=await setup();await ctx.send('refreshOnOpen',{force:true});await ctx.settle();expect(ctx.effects.create).toHaveBeenCalledTimes(3);expect(ctx.state().syncRun?.completed).toEqual(expect.arrayContaining(['learn','crowdmark','odyssey']));
+it('explicit Refresh reads fresh data without opening missing source pages',async()=>{
+ const ctx=await setup();await ctx.send('refreshOnOpen',{force:true});await ctx.settle();expect(ctx.effects.create).not.toHaveBeenCalled();expect(ctx.state().syncRun?.completed).toEqual(expect.arrayContaining(['learn','crowdmark','odyssey']));
 });
 
 it('manual Refresh queued during passive reading still performs the requested full refresh',async()=>{
  const ctx=await setup([{id:1,url:'https://learn.uwaterloo.ca/d2l/home',status:'complete'}]);
  let release!:(value:any)=>void;
  readers.read.mockImplementationOnce(()=>new Promise(resolve=>{release=resolve})).mockResolvedValue({entries:[],courses:[]});
- ctx.alarm();await vi.waitFor(()=>expect(readers.read).toHaveBeenCalledTimes(1));
+ ctx.alarm();await vi.waitFor(()=>expect(readers.read).toHaveBeenCalledTimes(3));
  await ctx.send('refreshOnOpen',{force:true});release({entries:[],courses:[]});
  await vi.waitFor(()=>expect(ctx.state().syncRun?.completed).toHaveLength(3));
- expect(ctx.effects.create).toHaveBeenCalledTimes(2);expect(readers.read.mock.calls.some(c=>c[0]==='learn'&&c[2]===true)).toBe(true);
+ expect(ctx.effects.create).not.toHaveBeenCalled();expect(readers.read.mock.calls.some(c=>c[0]==='learn'&&c[2]===true)).toBe(true);
 });
 it('automatic public CS135 refresh never acquires a source tab',async()=>{
  const ctx=await setup();ctx.state().settings.cs135Enabled=true;
  ctx.alarm();await ctx.settle();expect(ctx.effects.create).not.toHaveBeenCalled();expect(ctx.state().sources.cs135.status).toBe('ok');
- expect(readers.read.mock.calls.map(c=>c[0])).toEqual(['cs135']);
+ expect(readers.read.mock.calls.map(c=>c[0])).toEqual(['learn','crowdmark','odyssey','cs135']);
 });
 it('Möbius is optional and manual refresh never launches an absent LTI page',async()=>{
  const ctx=await setup();await ctx.send('sync',{platform:'mobius'});await new Promise(r=>setTimeout(r,10));expect(readers.read).not.toHaveBeenCalled();
@@ -82,17 +82,20 @@ it('reading a user-opened Möbius page never navigates even on manual refresh',a
 it('accepts state requests from the extension full-page tab, while content pages remain isolated',async()=>{
  const ctx=await setup();const respond=ctx.sendExtensionPage();await vi.waitFor(()=>expect(respond).toHaveBeenCalledWith(expect.objectContaining({ok:true,value:expect.objectContaining({schemaVersion:1})})));expect(ctx.sendExtensionPage('https://learn.uwaterloo.ca/d2l/home')).not.toHaveBeenCalled();
 });
-it('passive refresh skips frozen pages without waking or reading them',async()=>{
- const ctx=await setup([{id:1,url:'https://learn.uwaterloo.ca/d2l/home',status:'complete',frozen:true}]);ctx.alarm();await ctx.settle();expect(readers.read).not.toHaveBeenCalled();expect(ctx.effects.update).not.toHaveBeenCalled();expect(ctx.effects.reload).not.toHaveBeenCalled();
+it('passive refresh uses background reads without waking frozen pages',async()=>{
+ const ctx=await setup([{id:1,url:'https://learn.uwaterloo.ca/d2l/home',status:'complete',frozen:true}]);ctx.alarm();await ctx.settle();expect(readers.read).toHaveBeenCalledTimes(3);expect(ctx.effects.update).not.toHaveBeenCalled();expect(ctx.effects.reload).not.toHaveBeenCalled();
 });
-it('manual CS135 refresh opens the submission page and reads its records',async()=>{
- const ctx=await setup();ctx.state().settings.cs135Enabled=true;await ctx.send('sync',{platform:'cs135'});await vi.waitFor(()=>expect(ctx.state().sources.cs135?.status).toBe('ok'));expect(ctx.effects.create).toHaveBeenCalledWith({url:'https://student.cs.uwaterloo.ca/~cs135/assign/viewsubmissions/index.html',active:false});expect(readers.read.mock.calls[0][0]).toBe('cs135');
+it('manual CS135 refresh never opens the submission page',async()=>{
+ const ctx=await setup();ctx.state().settings.cs135Enabled=true;await ctx.send('sync',{platform:'cs135'});await vi.waitFor(()=>expect(ctx.state().sources.cs135?.status).toBe('ok'));expect(ctx.effects.create).not.toHaveBeenCalled();expect(readers.read.mock.calls[0][0]).toBe('cs135');
 });
-it('a timed-out sign-in cannot restart reading after the source has stopped',async()=>{
+it('a timed-out read cannot overwrite the error with a late response',async()=>{
  vi.useFakeTimers();try{
-  const ctx=await setup();let release!:()=>void;readers.login.mockImplementation((p:string)=>p==='learn'?new Promise<void>(resolve=>{release=resolve}):Promise.resolve());
-  await ctx.send('refreshOnOpen',{force:true});await vi.advanceTimersByTimeAsync(1);expect(ctx.state().sources.learn.phase).toBe('page');
+  const ctx=await setup();let release!:(value:any)=>void;readers.read.mockImplementation((p:string)=>p==='learn'?new Promise(resolve=>{release=resolve}):Promise.resolve({entries:[],courses:[]}));
+  await ctx.send('refreshOnOpen',{force:true});await vi.advanceTimersByTimeAsync(1);expect(ctx.state().sources.learn.phase).toBe('tasks');
   await vi.advanceTimersByTimeAsync(180001);expect(ctx.state().sources.learn).toMatchObject({status:'error',error:'sync-timeout',phase:undefined});
-  release();await vi.advanceTimersByTimeAsync(1);expect(ctx.state().sources.learn.phase).toBeUndefined();expect(readers.read.mock.calls.some(c=>c[0]==='learn')).toBe(false);
+  release({entries:[],courses:[]});await vi.advanceTimersByTimeAsync(1);expect(ctx.state().sources.learn.status).toBe('error');expect(ctx.effects.create).not.toHaveBeenCalled();
  }finally{vi.useRealTimers()}
 });
+it('manual refresh with an expired session never opens or navigates a login page',async()=>{const ctx=await setup();readers.read.mockRejectedValue(Error('signed-out'));await ctx.send('refreshOnOpen',{force:true});await ctx.settle();expect(ctx.effects.create).not.toHaveBeenCalled();expect(ctx.effects.update).not.toHaveBeenCalled();expect(ctx.effects.focus).not.toHaveBeenCalled();expect(readers.login).not.toHaveBeenCalled();expect(readers.grades).not.toHaveBeenCalled();expect(ctx.state().sources.learn.error).toBe('signed-out')});
+it('scheduled sync still runs when the last result is just under six hours old',async()=>{const ctx=await setup();for(const p of ['learn','crowdmark','odyssey'])ctx.state().sources[p]={status:'ok',at:new Date(Date.now()-359*60000).toISOString()};ctx.alarm();await ctx.settle();expect(readers.read).toHaveBeenCalledTimes(3);expect(ctx.effects.create).not.toHaveBeenCalled()});
+it('manual-only mode suppresses automatic reads but allows Refresh',async()=>{const ctx=await setup();ctx.state().settings.syncIntervalMinutes=0;ctx.alarm();await ctx.settle();expect(readers.read).not.toHaveBeenCalled();await ctx.send('refreshOnOpen',{force:true});await vi.waitFor(()=>expect(readers.read).toHaveBeenCalledTimes(3));expect(ctx.effects.create).not.toHaveBeenCalled()});

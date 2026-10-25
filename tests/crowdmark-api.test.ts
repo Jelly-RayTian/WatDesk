@@ -19,7 +19,7 @@ it('imports through the actual upstream worker reader without any tab or DOM ide
 it('uses WATnow tab messaging when worker fetch is signed out, without requiring DOM selectors',async()=>{
  vi.useFakeTimers({toFake:['Date']});vi.setSystemTime(new Date('2026-10-10T12:00:00Z'));
  const send=vi.fn(async(_id:number,msg:any)=>({status:200,type:'application/json',json:msg.path.includes('/assignments?')?assignments:courses}));
- vi.stubGlobal('chrome',{permissions:{contains:async()=>true},scripting:{getRegisteredContentScripts:async()=>[],registerContentScripts:async()=>{},executeScript:async()=>{throw Error('Frame with ID 0 was removed.')}},tabs:{query:async()=>[{id:1,active:true}],sendMessage:send}});
+ vi.stubGlobal('chrome',{permissions:{contains:async()=>true},scripting:{getRegisteredContentScripts:async()=>[],registerContentScripts:async()=>{},executeScript:async()=>{throw Error('Frame with ID 0 was removed.')}},tabs:{query:async()=>[{id:1,active:true,status:'complete'}],sendMessage:send}});
  vi.stubGlobal('fetch',vi.fn(async()=>new Response('',{status:401})));
  const result=await readPlatform('crowdmark',emptyState());expect(result.entries[0].title).toBe('Practice');expect(send).toHaveBeenCalledTimes(2);
 });
