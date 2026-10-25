@@ -17,3 +17,23 @@ export function parseLearnExams(events:any[],courses:Array<{id:string;code:strin
   const end=iso(e.EndDateTime);return [{id:`learn:exam:${e.CalendarEventId}`,platform:'learn' as const,course:c.code,title:String(e.Title),type:'exam' as const,category:'exam' as const,start,end:end&&end>start?end:null,due:null,status:'open' as const,readerCourseId:c.id,seenIn:['calendar'],url:`https://learn.uwaterloo.ca/d2l/le/calendar/${encodeURIComponent(c.id)}`}];
  });
 }
+
+// Teacher-created Module Quiz calendar events use EventType=1 even though their
+// explicit title/time is a real deadline. Keep this narrow; office hours stay out.
+export function parseLearnCalendarQuizzes(events:any[],courses:Array<{id:string;code:string;orgUnitId:number}>):Entry[]{
+ return events.flatMap(e=>{
+  if(!e||!/^Module\s+\d+\s+Quiz$/i.test(String(e.Title||'').trim())||e.IsRecurring||e.IsAllDayEvent||e.IsAssociatedWithEntity!==false&&e.AssociatedEntity)return [];
+  const c=courses.find(c=>String(c.orgUnitId)===String(e.OrgUnitId));const raw=e.EndDateTime||e.StartDateTime;
+  if(!c||e.CalendarEventId==null||typeof raw!=='string'||!Number.isFinite(Date.parse(raw)))return [];
+  const due=new Date(raw).toISOString();const earlier=typeof e.StartDateTime==='string'&&Number.isFinite(Date.parse(e.StartDateTime))&&Date.parse(e.StartDateTime)<Date.parse(due)?new Date(e.StartDateTime).toISOString():null;
+  return [{id:`learn:calendar-quiz:${e.CalendarEventId}`,platform:'learn' as const,course:c.code,title:String(e.Title).trim(),category:'quiz' as const,type:'task' as const,start:earlier,due,end:null,status:'open' as const,readerCourseId:c.id,seenIn:['calendar'],url:`https://learn.uwaterloo.ca/d2l/le/calendar/${c.orgUnitId}`}];
+ });
+}
+export function mergeLearnQuizEntries(entries:Entry[],extra:Entry[]):Entry[]{
+ const merged=[...entries];
+ for(const entry of extra){const index=merged.findIndex(e=>e.course===entry.course&&e.title.trim().toLowerCase()===entry.title.trim().toLowerCase()&&e.due&&entry.due&&Date.parse(e.due)===Date.parse(entry.due));
+  if(index<0){merged.push(entry);continue}
+  const old=merged[index];merged[index]={...old,start:old.start||entry.start,url:entry.seenIn?.includes('course-schedule')?entry.url:old.url,seenIn:[...new Set([...old.seenIn||[],...entry.seenIn||[]])]};
+ }
+ return merged;
+}

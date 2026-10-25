@@ -96,3 +96,11 @@ Crowdmark refresh again checks rendered grades for current courses and, when due
 Online quizzes from LEARN, including Course Schedule Module Quizzes, now also appear on the Exams page. They keep their original task records, calendar events and deadline reminders; no duplicate exam record is created. Cards show both opening and closing dates and any known attempt limit. Availability windows do not participate in fixed exam time-conflict checks. Past quizzes remain available under Show past exams.
 
 Update details remains available alongside Retry after a source failure. Disabled optional sources are excluded from the progress banner, including failures saved by an older run. Möbius remains optional; LEARN quiz dates do not require enabling it.
+
+## 1.2.2 — import the real ECON quiz dates
+
+Fix the real LEARN data boundary: course API paths use numeric `orgUnitId`, while the internal `ou`-prefixed ID remains the cache key. Handle the current TOC `{Modules}` envelope and `TopicId` / `TypeIdentifier` fields as well as the older shape. File topics use the verified same-course enforced-content URL, never an external learning-tool launch.
+
+Teacher-created `Module N Quiz` Calendar events are imported as quiz deadlines even when LEARN labels them EventType 1 (Reminder). Office hours, recurring events and unrelated reminders stay excluded. Calendar and Course Schedule entries merge by course, title and actual timestamp, filling opening times without duplicating tasks, calendar exports or reminders. Profiles affected by the old schedule 404 receive a one-time cache repair without changing user entries, settings or last-success timestamps.
+
+Outline deadlines can be added through Settings → My local data → Import items (add only). The bounded JSON format `watdesk-items-v1` accepts personal items and never replaces existing records, settings or completion marks; repeat imports are idempotent. An official outline link can be retained on each item. Date-only records are labeled as having an unpublished time and export as all-day calendar events. Their date reminder does not claim an exact deadline time. Outline snapshots are imported records, not an automatically polled source.

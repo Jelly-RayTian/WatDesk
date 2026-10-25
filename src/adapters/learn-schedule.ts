@@ -14,13 +14,17 @@ export function parseScheduleRows(rows:string[][],course:string,courseId:string,
  });
 }
 export async function readLearnSchedule(source:any,course:any,_tabId?:number):Promise<Entry[]>{
- const le=source.versions.le;const toc=await source.api(`/d2l/api/le/${le}/${encodeURIComponent(course.id)}/content/toc`);
- const topics:any[]=[];const walk=(modules:any[])=>{for(const m of modules||[]){topics.push(...m.Topics||[]);walk(m.Modules)}};walk(toc);
+ const orgUnitId=String(course.orgUnitId??String(course.id).replace(/^ou/,''));if(!/^\d+$/.test(orgUnitId))throw Error('schedule-course-id');
+ const le=source.versions.le;const toc=await source.api(`/d2l/api/le/${le}/${orgUnitId}/content/toc`);
+ const roots=Array.isArray(toc)?toc:toc?.Modules;if(!Array.isArray(roots))throw Error('schedule-toc-format');
+ const topics:any[]=[];const walk=(modules:any[])=>{for(const m of modules||[]){for(const t of m.Topics||[])topics.push({...t,Id:t.TopicId??t.Id,TopicType:t.TypeIdentifier!=null?(t.TypeIdentifier==='File'?1:0):t.TopicType});walk(m.Modules)}};walk(roots);
  const schedules=topics.filter(t=>/^(?:Course Schedule|课程日程)$/i.test(t.Title||'')&&t.TopicType===1).slice(0,3);
  const entries:Entry[]=[];
  for(const t of schedules){
-  const path=`/d2l/api/le/${le}/${encodeURIComponent(course.id)}/content/topics/${encodeURIComponent(t.Id)}/file?stream=true`;
-  const rows=await parseBackgroundHtml<string[][]>('rows',await backgroundHtml('https://learn.uwaterloo.ca'+path));entries.push(...parseScheduleRows(rows,course.code,String(course.id),String(t.Id),topics));
+  if(!/^\d+$/.test(String(t.Id)))throw Error('schedule-topic-id');
+  let url=`https://learn.uwaterloo.ca/d2l/api/le/${le}/${orgUnitId}/content/topics/${t.Id}/file?stream=true`;
+  if(typeof t.Url==='string'&&t.Url){const target=new URL(t.Url,'https://learn.uwaterloo.ca');if(target.origin!=='https://learn.uwaterloo.ca'||!target.pathname.startsWith('/content/enforced/'+orgUnitId+'-'))throw Error('schedule-file-path');url=target.href}
+  const rows=await parseBackgroundHtml<string[][]>('rows',await backgroundHtml(url));entries.push(...parseScheduleRows(rows,course.code,orgUnitId,String(t.Id),topics).map(e=>({...e,readerCourseId:String(course.id)})));
  }
  return entries;
 }

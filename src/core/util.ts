@@ -13,7 +13,7 @@ export function planReminders(s:AppState,now:string){
  if(!s.settings.notifications)return out;
  for(const e of [...visibleEntries(s),...meetingEntries(s,at,2)]){
   const time=stamp(e);if(!time||e.gone||e.status==='submitted'||personallyDone(e,s)||s.settings.mutedCourses.includes(e.course))continue;
-  const due=Date.parse(time);
+  const due=Date.parse(e.dateOnly?campusInstant(e.dateOnly+'T09:00',s.settings.zone)!:time);
   const custom=s.settings.courseReminders?.[e.course];
   const leads=[...new Set(e.category==='class'?[meetingForEntry(e,s)?.leadMinutes??15]:e.type==='exam'?custom?.examLeads||s.settings.examLeads:[custom?.taskLead??s.settings.taskLead])].sort((a,b)=>a-b);
   const lead=leads.find(v=>due-v*60000<=at&&(at<due||v===0&&at-due<5*60000));
@@ -23,11 +23,11 @@ export function planReminders(s:AppState,now:string){
  }
  return out;
 }
-export function safeUrl(url:string){try{const u=new URL(url);return u.protocol==='https:'&&['learn.uwaterloo.ca','app.crowdmark.com','odyssey.uwaterloo.ca','student.cs.uwaterloo.ca'].includes(u.hostname)}catch{return url===''}}
+export function safeUrl(url:string){try{const u=new URL(url);return u.protocol==='https:'&&['learn.uwaterloo.ca','app.crowdmark.com','odyssey.uwaterloo.ca','student.cs.uwaterloo.ca','outline.uwaterloo.ca'].includes(u.hostname)}catch{return url===''}}
 const esc=(s:string)=>s.replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r/g,'');
 function fold(line:string){let bytes=0,out='';for(const c of line){const n=new TextEncoder().encode(c).length;if(bytes+n>75){out+='\r\n ';bytes=1}out+=c;bytes+=n}return out}
 export function exportIcs(s:AppState){const utc=(v:string)=>new Date(v).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z');const now=utc(new Date().toISOString());const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//WatDesk//Academic Workspace//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:WatDesk'];
- for(const e of [...visibleEntries(s),...meetingEntries(s,Date.now(),90)]){const date=stamp(e);if(!date||e.gone||s.overlays[e.id]?.hidden||s.overlays[e.id]?.linkedTo)continue;lines.push('BEGIN:VEVENT',`UID:${e.id.replace(/[^a-z0-9._-]/gi,'-')}@watdesk.local`,`DTSTAMP:${now}`,`DTSTART:${utc(date)}`,`SUMMARY:${esc(`${e.course} ${e.title}`)}`);if(e.type==='exam'&&e.end)lines.push(`DTEND:${utc(e.end)}`);if(e.location)lines.push(`LOCATION:${esc(e.location)}`);lines.push(`DESCRIPTION:${esc(`${e.platform}${e.seat?` | ${s.settings.locale==='zh-CN'?'座位':'Seat'}: ${e.seat}`:''}\n${e.start&&e.type==='task'?`Opens: ${e.start}\n`:''}${e.duration?`Time limit: ${e.duration}\n`:''}${personalNote(e,s)}`)}`);if(safeUrl(e.url)&&e.url)lines.push(`URL:${e.url}`);lines.push('END:VEVENT')}lines.push('END:VCALENDAR');return lines.map(fold).join('\r\n')+'\r\n';}
+ for(const e of [...visibleEntries(s),...meetingEntries(s,Date.now(),90)]){const date=stamp(e);if(!date||e.gone||s.overlays[e.id]?.hidden||s.overlays[e.id]?.linkedTo)continue;lines.push('BEGIN:VEVENT',`UID:${e.id.replace(/[^a-z0-9._-]/gi,'-')}@watdesk.local`,`DTSTAMP:${now}`,e.dateOnly?`DTSTART;VALUE=DATE:${e.dateOnly.replace(/-/g,'')}`:`DTSTART:${utc(date)}`,`SUMMARY:${esc(`${e.course} ${e.title}`)}`);if(e.type==='exam'&&e.end)lines.push(`DTEND:${utc(e.end)}`);if(e.location)lines.push(`LOCATION:${esc(e.location)}`);lines.push(`DESCRIPTION:${esc(`${e.platform}${e.seat?` | ${s.settings.locale==='zh-CN'?'座位':'Seat'}: ${e.seat}`:''}\n${e.start&&e.type==='task'?`Opens: ${e.start}\n`:''}${e.duration?`Time limit: ${e.duration}\n`:''}${personalNote(e,s)}`)}`);if(safeUrl(e.url)&&e.url)lines.push(`URL:${e.url}`);lines.push('END:VEVENT')}lines.push('END:VCALENDAR');return lines.map(fold).join('\r\n')+'\r\n';}
 export function validateBackup(text:string):AppState{
  if(new TextEncoder().encode(text).length>10*1024*1024)throw Error('restoreError');const s=JSON.parse(text);
  if(s.schemaVersion!==1||!s.settings||!['en','zh-CN'].includes(s.settings.locale)||!['system','light','dark'].includes(s.settings.theme)||!Array.isArray(s.entries)||!Array.isArray(s.courses)||!s.sources||!s.overlays||!s.sent||!Array.isArray(s.changes))throw Error('restoreError');
@@ -48,7 +48,7 @@ export function validateBackup(text:string):AppState{
  if(typeof s.settings.notifications!=='boolean'||s.settings.examLeads.length>10||s.settings.mutedCourses.some((v:unknown)=>typeof v!=='string'))throw Error('restoreError');
  const record=(v:unknown)=>!!v&&typeof v==='object'&&!Array.isArray(v);
  if(!record(s.overlays)||!record(s.sources)||!record(s.sent))throw Error('restoreError');
- const ids=new Set<string>();for(const e of s.entries){if(ids.has(e.id))throw Error('restoreError');ids.add(e.id);for(const k of ['location','seat','duration'])if(e[k]!==undefined&&typeof e[k]!=='string')throw Error('restoreError')}
+ const ids=new Set<string>();for(const e of s.entries){if(e.dateOnly!==undefined&&(typeof e.dateOnly!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(e.dateOnly)||!campusInstant(e.dateOnly+'T23:59:59')))throw Error('restoreError');if(ids.has(e.id))throw Error('restoreError');ids.add(e.id);for(const k of ['location','seat','duration'])if(e[k]!==undefined&&typeof e[k]!=='string')throw Error('restoreError')}
  for(const c of s.courses)if(!c||typeof c.id!=='string'||typeof c.code!=='string'||typeof c.name!=='string'||c.term!==undefined&&typeof c.term!=='string')throw Error('restoreError');
  for(const o of Object.values(s.overlays) as any[]){if(!record(o)||o.note!==undefined&&typeof o.note!=='string'||o.linkedTo!=null&&typeof o.linkedTo!=='string'||o.keepSeparate!==undefined&&typeof o.keepSeparate!=='boolean'||o.done!==undefined&&typeof o.done!=='boolean'||o.hidden!==undefined&&typeof o.hidden!=='boolean')throw Error('restoreError')}
 

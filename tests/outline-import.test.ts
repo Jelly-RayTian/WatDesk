@@ -1,0 +1,8 @@
+import {it,expect} from 'vitest';
+import {emptyState,type Entry} from '../src/domain';
+import {importDeadlineItems} from '../src/core/import-items';
+import {exportIcs,planReminders} from '../src/core/util';
+const item:Entry={id:'manual:outline:sample:proposal',platform:'manual',course:'ENGL 119',title:'Proposal Test',type:'exam',category:'quiz',start:'2026-11-04T04:59:59Z',end:null,due:null,dateOnly:'2026-11-03',status:'open',url:'https://outline.uwaterloo.ca/viewer/view/sample',seenIn:['course-outline']};
+it('adds outline items without replacing existing entries, settings or completion marks; repeated imports are idempotent',()=>{const s=emptyState();s.entries=[{...item,id:'manual:existing',title:'Personal item'}];s.overlays={'manual:existing':{done:true}};const text=JSON.stringify({format:'watdesk-items-v1',entries:[item]});const next=importDeadlineItems(s,text);expect(next.entries).toHaveLength(2);expect(next.overlays).toEqual(s.overlays);expect(next.settings).toEqual(s.settings);expect(importDeadlineItems(next,text).entries).toHaveLength(2)});
+it('exports unknown-time outline dates as all-day events instead of invented midnight deadlines',()=>{const s=emptyState();s.entries=[item];const ics=exportIcs(s);expect(ics).toContain('DTSTART;VALUE=DATE:20261103');expect(ics).not.toContain('DTSTART:20261104T045959Z');expect(planReminders(s,'2026-11-02T15:00:00Z')[0]?.entry.dateOnly).toBe('2026-11-03')});
+it('rejects non-manual records and impossible date-only metadata',()=>{for(const bad of [{...item,platform:'learn'},{...item,dateOnly:'2026-02-31'}])expect(()=>importDeadlineItems(emptyState(),JSON.stringify({format:'watdesk-items-v1',entries:[bad]}))).toThrow()});
