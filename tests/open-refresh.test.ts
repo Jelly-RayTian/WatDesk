@@ -35,7 +35,7 @@ it('reads platforms concurrently and saves a quick result while others are pendi
  await run;expect(new Set(ctx.state().syncRun?.completed)).toEqual(new Set(['learn','crowdmark','odyssey','cs135']));vi.unstubAllGlobals();
 });
 it('a failed platform does not stop other sources from completing',async()=>{
- const ctx=await setup(true);mocked.read.mockImplementation(async p=>{if(p==='crowdmark')throw Error('signed-out');return {entries:[],courses:[]}});
+ const ctx=await setup(true);mocked.grades.mockRejectedValue(Error('signed-out'));mocked.read.mockImplementation(async p=>{if(p==='crowdmark')throw Error('signed-out');return {entries:[],courses:[]}});
  await ctx.message('refreshOnOpen');expect(ctx.state().syncRun?.completed).toEqual(expect.arrayContaining(['learn','odyssey','cs135']));
  expect(ctx.state().syncRun).toMatchObject({failed:'crowdmark',finished:true});expect(ctx.state().sources.crowdmark.error).toBe('signed-out');vi.unstubAllGlobals();
 });

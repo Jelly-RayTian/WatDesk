@@ -33,7 +33,7 @@ export function mergeLearnQuizEntries(entries:Entry[],extra:Entry[]):Entry[]{
  const merged=[...entries];
  for(const entry of extra){const index=merged.findIndex(e=>e.course===entry.course&&e.title.trim().toLowerCase()===entry.title.trim().toLowerCase()&&e.due&&entry.due&&Date.parse(e.due)===Date.parse(entry.due));
   if(index<0){merged.push(entry);continue}
-  const old=merged[index];merged[index]={...old,start:old.start||entry.start,url:entry.seenIn?.includes('course-schedule')?entry.url:old.url,seenIn:[...new Set([...old.seenIn||[],...entry.seenIn||[]])]};
+  const old=merged[index];merged[index]={...old,readState:old.readState==='fresh'||entry.readState!=='retained'?'fresh':old.readState,start:old.start||entry.start,url:entry.seenIn?.includes('course-schedule')?entry.url:old.url,seenIn:[...new Set([...old.seenIn||[],...entry.seenIn||[]])]};
  }
  return merged;
 }

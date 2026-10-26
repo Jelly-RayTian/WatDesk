@@ -54,13 +54,20 @@ async function runSync(p:Exclude<Platform,'manual'>,forceGrades:boolean,interact
  const token=fence.capture(p);const started=Date.now();const controller=new AbortController();let cancelled=false;const current=()=>!cancelled&&fence.current(p,token);
  try{
   await mutateState(s=>({...s,sources:{...s.sources,[p]:{...s.sources[p],attempt:new Date().toISOString(),phase:'page',status:'syncing'}}}));
-  const result=await withTimeout((async()=>{
+  const result=await withTimeout((async():Promise<Awaited<ReturnType<typeof readPlatform>>>=>{
    // API reads use existing sessions; rendered grades use a separate, inactive temporary tab.
    const tabId=await existingSourceTab(p);
    if(p==='mobius'&&tabId==null)throw Error('mobius-settings-required');
    if(!current())throw Error('sync-cancelled');
    await mutateState(s=>current()?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:'tasks'}}}:s);
-   const result=await readPlatform(p,await loadState(),forceGrades,tabId);
+   let result:Awaited<ReturnType<typeof readPlatform>>;
+   try{result=p==='odyssey'?await readPlatform(p,await loadState(),forceGrades,tabId,controller.signal):await readPlatform(p,await loadState(),forceGrades,tabId)}
+   catch(e){
+    if(p!=='crowdmark'||!/signed.out|sign.in|session.unreadable|401|403/i.test(e instanceof Error?e.message:String(e)))throw e;
+    await mutateState(s=>current()?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:'page'}}}:s);
+    const page=await enrichCrowdmarkGrades(await loadState(),{force:forceGrades,temporary:true,signIn:true,signal:controller.signal});
+    const stamp=new Date().toISOString();return {...page,entries:page.entries.map(entry=>({...entry,gradeVerifiedAt:entry.readState==='retained'?entry.gradeVerifiedAt:stamp,gradeReadState:entry.readState==='retained'?'retained' as const:'fresh' as const})),gradesAt:page.warning?undefined:stamp};
+   }
    if(p==='crowdmark'&&current()){
     await mutateState(s=>current()?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:'grades'}}}:s);
     try{
@@ -76,7 +83,7 @@ async function runSync(p:Exclude<Platform,'manual'>,forceGrades:boolean,interact
     }catch(e){if(e instanceof Error&&e.message==='identityChanged')throw e;result.warning='crowdmark-grades-unavailable: '+(e instanceof Error?e.message:String(e))}
    }
    return result;
-  })(),p==='crowdmark'||interactive?180000:45000);
+  })(),p==='crowdmark'||interactive?180000:p==='odyssey'?90000:45000);
   await mutateState(s=>current()?applySnapshot(s,p,result.entries,result.courses,{status:'ok',at:new Date().toISOString(),count:result.entries.length,identity:result.identity,error:result.warning,...(p==='crowdmark'?{gradesAt:result.gradesAt}:{}),...(p==='learn'?{scheduleVersion:1,gradesAt:result.gradesAt,issues:result.issues,courseReadAt:result.courseReadAt}:{})}):s);
 
  }catch(e){await mutateState(s=>current()?({...s,sources:{...s.sources,[p]:{...s.sources[p],phase:undefined,status:'error',error:e instanceof Error?e.message:String(e),durationMs:Date.now()-started}}}):s);cancelled=true}

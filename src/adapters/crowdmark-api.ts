@@ -1,3 +1,4 @@
+import {autoLogin} from './login';
 import {withTemporaryTab} from './temporary-tab';
 import type {AppState,Course,Entry} from '../domain';
 // Unmodified upstream WATnow reader; MIT attribution ships with the plugin.
@@ -21,4 +22,4 @@ export async function readCrowdmarkApi(state:AppState){
  entries.push(...state.entries.filter(e=>e.platform==='crowdmark'&&!e.gone&&!urls.has(e.url)&&(!readSlugs.has(e.readerCourseId||'')||e.scorePercent!=null||e.due==null)).map(e=>({...e,readState:'retained' as const})));
  return {entries:retainCrowdmarkIds(entries,state.entries),courses,warning:result.failedCourseIds.size?'crowdmark-partial: Previous records retained.':undefined};
 }
-export async function enrichCrowdmarkGrades(state:AppState,options:NonNullable<Parameters<typeof readCrowdmarkPages>[2]>&{temporary?:boolean;signal?:AbortSignal}={}){if(!options.temporary)return readCrowdmarkPages(state,undefined,options);return withTemporaryTab('https://app.crowdmark.com/student/courses',page=>readCrowdmarkPages(state,undefined,{...options,page}),{signal:options.signal,timeout:125000})}
+export async function enrichCrowdmarkGrades(state:AppState,options:NonNullable<Parameters<typeof readCrowdmarkPages>[2]>&{temporary?:boolean;signIn?:boolean;signal?:AbortSignal}={}){if(!options.temporary)return readCrowdmarkPages(state,undefined,options);return withTemporaryTab('https://app.crowdmark.com/student/courses',async page=>{if(options.signIn)await autoLogin('crowdmark',page.id,page.check);page.check();return readCrowdmarkPages(state,undefined,{...options,page})},{signal:options.signal,timeout:125000})}

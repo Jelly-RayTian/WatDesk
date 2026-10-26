@@ -19,7 +19,7 @@ export function LearnReadDetails({status,zh,gradesOnly=false}:{status:SyncStatus
 
 }
 export function BackgroundSync({state,retry,details}:{state:AppState;retry:()=>void;details:()=>void}){
- const enabled=enabledPlatforms(state);const savedRun=state.syncRun;const run=savedRun?{...savedRun,targets:savedRun.targets.filter(p=>enabled.includes(p)),completed:savedRun.completed.filter(p=>enabled.includes(p)),reused:savedRun.reused?.filter(p=>enabled.includes(p))}:undefined,zh=state.settings.locale==='zh-CN';
+ const enabled=enabledPlatforms(state);const savedRun=state.syncRun;const run=savedRun?{...savedRun,targets:savedRun.targets.filter(p=>enabled.includes(p)),completed:[...new Set([...savedRun.completed.filter(p=>enabled.includes(p)),...savedRun.targets.filter(p=>enabled.includes(p)&&state.sources[p]?.status==='ok'&&!state.sources[p]?.phase&&Date.parse(state.sources[p]?.at||'')>=savedRun.started)])],reused:savedRun.reused?.filter(p=>enabled.includes(p))}:undefined,zh=state.settings.locale==='zh-CN';
  const individual=!run||run.finished?enabled.find(p=>state.sources[p]?.status==='syncing'||!!state.sources[p]?.phase):undefined;
  const reading=enabled.filter(p=>state.sources[p]?.status==='syncing'||!!state.sources[p]?.phase);const busy=run&&!run.finished||!!individual,current=reading[0]||run?.active||individual,failed=enabled.find(p=>run?.targets.includes(p)&&state.sources[p]?.status==='error');
  const pending=!!run?.finished&&run.completed.length<run.targets.length;const count=individual?0:run?.completed.length||0,total=individual?1:run?.targets.length||0;

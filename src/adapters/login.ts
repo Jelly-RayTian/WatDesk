@@ -25,19 +25,19 @@ export async function clickPlatformLogin(p:string){
  return authPath||document.querySelector('input[autocomplete="username"]')?'manual-login':'ready';
 }
 const jobs=new Map<number,Promise<void>>();
-export function autoLogin(p:SourcePlatform,tabId:number):Promise<void>{
+export function autoLogin(p:SourcePlatform,tabId:number,check:()=>void=()=>{}):Promise<void>{
  if(p==='cs135'||p==='mobius')return Promise.resolve();
  const existing=jobs.get(tabId);if(existing)return existing;
  const job=(async()=>{
   let clickedAt='';let outside=0;
   for(let n=0;n<24;n++){
-   await waitForTab(tabId);
+   check();await waitForTab(tabId);check();
    let action:string|undefined;
    try{const [result]=await retryFrame(()=>chrome.scripting.executeScript({target:{tabId},func:clickPlatformLogin,args:[p]}),()=>waitForTab(tabId));action=result?.result}catch{
     // A school SSO redirect is outside our host permissions. Wait for it to return.
     if(++outside>=8)throw Error('sign-in-required');await new Promise(r=>setTimeout(r,500));continue;
    }
-   if(action==='ready')return;
+   check();if(action==='ready')return;
    if(action==='manual-login')throw Error('sign-in-required');
    if(action==='waterloo-entry'){await chrome.tabs.update(tabId,{url:'https://app.crowdmark.com/sign-in/waterloo'});clickedAt='';continue}
    if(action==='started'){
