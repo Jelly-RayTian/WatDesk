@@ -6,9 +6,13 @@ Independent bilingual academic workspace for University of Waterloo. Edge Manife
 
 1. Build, or use the delivered `extension` folder.
 2. Open `edge://extensions`, enable Developer mode, choose **Load unpacked / 加载解压缩的扩展**, select that folder.
-3. First launch opens platform setup. Connect Learn, Crowdmark and Odyssey; CS135 and Möbius are optional and disabled until selected. Review imported counts, then enter the workspace. The full-page button is visible at the top of setup and the side panel.
+3. First launch opens platform setup. Connect Learn, Crowdmark and Odyssey; CS135 and Möbius are optional and disabled until selected. Review imported counts, then enter the workspace. The full-page button is visible in setup; in the side panel, use the top-right More actions menu.
 4. Pin WatDesk. Click its toolbar icon to open the side panel. Use **打开完整面板 / Open full workspace** for the full page.
 5. Installation requests access to the three core sites: Learn, Crowdmark and Odyssey. First opening automatically opens and connects them in parallel. CS135, Möbius and school SSO helper permissions remain optional. Sign in on Learn, Crowdmark and Odyssey themselves, SSO entries are clicked automatically when possible; passwords and verification stay under your control. Sync resumes when you return to the platform. CS135 calendar is public.
+
+## v1.3 workspace
+
+A complete visual redesign uses warm paper surfaces, deep ink navigation and restrained gold accents. The overview groups work by campus date, highlights today's exams separately from task deadlines, and lets you expand later dates or filter every course. Tasks, exams, grades, calendar and settings share the same responsive system in both languages and themes. Released grade records lead; optional estimates and detailed source diagnostics live in disclosures. Dates without published times remain explicitly date-only.
 
 ## Features
 
@@ -23,7 +27,7 @@ Independent bilingual academic workspace for University of Waterloo. Edge Manife
 - Course-specific deadline/exam reminders, manually entered weekly classes, course muting, calendar ICS export (including the next 90 days of classes), full JSON backup/restore and a self-contained offline HTML viewer.
 - Record-level verification times distinguish saved or retained data from freshly checked data. Learn skips hidden courses and reuses course reads for 10 minutes; manual refresh bypasses this cache. Failed reads retain the previous snapshot. Account name changes block replacement until source cache is cleared.
 
-Checking a task is personal bookkeeping; it does not submit anything to the university. Reminder delivery requires Edge to be running and Windows to allow notifications. Opening shows saved data immediately and checks for updates in the background with short freshness windows. Every 30 minutes while Edge runs, automatic sync reads only already-open, loaded source tabs; it never opens, activates, reloads discarded tabs, or navigates source pages. Closed platforms keep their saved data until you open their website or click Refresh. Crowdmark grade-page browsing runs only on manual refresh or initial setup. Manual refresh forces a new read and may open the source websites. Grade estimates follow manually entered weights and do not model drop rules or pass-the-final conditions. Platform APIs/page layouts may change. Course content and external resource titles retain their original language.
+Checking a task is personal bookkeeping; it does not submit anything to the university. Reminder delivery requires Edge to be running and the operating system to allow notifications. Opening shows saved data immediately. Automatic sync defaults to every six hours, with a configurable interval in Settings (including manual only). Background reads do not activate your tabs; when a platform needs a rendered page, WatDesk creates an inactive temporary tab and closes it after use. The browser can still show that temporary tab in its tab strip. An expired session may require you to finish sign-in or verification on the platform. Browser shutdown or computer sleep can delay scheduled runs. Manual Refresh bypasses freshness caches. Grade estimates follow manually entered weights and do not model drop rules or pass-the-final conditions. Platform APIs/page layouts may change. Course content and external resource titles retain their original language.
 
 Data stays in this extension's local browser storage. No WatDesk server, analytics, password collection, or external font CDN. Source requests go to the corresponding university/Crowdmark service using the browser session. Backups contain your academic data and notes; keep them private. Removing the extension removes its local data: export a backup first.
 

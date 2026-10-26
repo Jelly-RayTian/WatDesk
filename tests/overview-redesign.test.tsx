@@ -1,0 +1,12 @@
+// @vitest-environment jsdom
+import {act} from 'react';
+import {createRoot} from 'react-dom/client';
+import {it,expect,vi} from 'vitest';
+import {Overview} from '../src/ui/Overview';
+import {emptyState,type Entry} from '../src/domain';
+it('shows later dates through expand and course filtering while displaying today exam count',async()=>{
+ const now=Date.parse('2026-10-26T15:00:00Z');const state=emptyState('zh-CN');const entries:Entry[]=Array.from({length:12},(_,i)=>({id:String(i),platform:'learn',course:i===11?'ENGL 119':'ECON 101',title:'Assignment '+i,type:'task',start:null,end:null,due:new Date(now+(i+1)*86400000).toISOString(),status:'open',url:''}));entries.unshift({id:'exam',platform:'odyssey',course:'MATH 137',title:'Today Midterm',type:'exam',start:'2026-10-26T23:00:00Z',end:null,due:null,status:'open',url:''});
+ (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;const host=document.createElement('div');document.body.append(host);const root=createRoot(host);const select=vi.fn();const props={state,entries,now,course:'all',setCourse:select,allCourses:['ECON 101','ENGL 119','MATH 137','EMPTY 100'],courseStyle:()=>({}),onAdd:()=>{},onCalendar:()=>{},onExams:()=>{},onSources:()=>{},renderTask:(e:Entry)=><article key={e.id} className="entry">{e.title}</article>,renderExam:(e:Entry)=><article key={e.id} className="exam-card">{e.title}</article>,sources:null,resources:null};
+ try{await act(async()=>root.render(<Overview {...props}/>));expect(host.querySelector('.today-exams-count')?.textContent).toBe('1');expect([...host.querySelectorAll('.task-section article')].map(e=>e.textContent)).not.toContain('Assignment 11');const more=[...host.querySelectorAll('button')].find(e=>e.textContent?.includes('继续查看'));expect(more).toBeTruthy();await act(async()=>more!.click());expect(host.querySelector('.task-section')?.textContent).toContain('Assignment 11');const english=[...host.querySelectorAll('.course-filters button')].find(e=>e.textContent?.includes('ENGL 119'));await act(async()=>english!.click());expect(select).toHaveBeenCalledWith('ENGL 119');await act(async()=>root.render(<Overview {...props} course="ENGL 119"/>));expect(host.querySelector('.task-section')?.textContent).toContain('Assignment 11');expect([...host.querySelectorAll('.task-section article')].map(e=>e.textContent)).not.toContain('Assignment 0')}
+ finally{await act(async()=>root.unmount());host.remove()}
+});

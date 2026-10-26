@@ -1,0 +1,35 @@
+import {useEffect,useState,type ReactNode,type CSSProperties} from 'react';
+import {ArrowRight,Plus,CalendarBlank,GraduationCap,ArrowDown,CheckCircle,Clock,Warning} from '@phosphor-icons/react';
+import type {AppState,Entry} from '../domain';
+import {buildOverview} from '../core/overview';
+import {fmtEntry,stamp} from '../core/util';
+import {NextClasses} from './CourseReminders';
+interface Props {state:AppState;entries:Entry[];now:number;course:string;setCourse:(course:string)=>void;allCourses:string[];courseStyle:(course:string)=>CSSProperties;onAdd:()=>void;onCalendar:()=>void;onExams:()=>void;onSources:()=>void;renderTask:(entry:Entry)=>ReactNode;renderExam:(entry:Entry)=>ReactNode;sources:ReactNode;resources:ReactNode}
+export function Overview({state,entries,now,course,setCourse,allCourses,courseStyle,onAdd,onCalendar,onExams,onSources,renderTask,renderExam,sources,resources}:Props){
+ const zh=state.settings.locale==='zh-CN',locale=state.settings.locale,zone=state.settings.zone;
+ const model=buildOverview(entries,state,now);const [daysShown,setDaysShown]=useState(6);useEffect(()=>setDaysShown(6),[course]);
+ const filtered=model.groups.map(g=>({...g,entries:g.entries.filter(e=>course==='all'||e.course===course)})).filter(g=>g.entries.length);
+ const groups=filtered.slice(0,daysShown),remaining=filtered.slice(daysShown).reduce((n,g)=>n+g.entries.length,0);
+ const activeCourses=allCourses.filter(c=>(model.courseCounts[c]||0)>0||model.undated.some(e=>e.course===c)||c===course);
+ const otherCourses=allCourses.filter(c=>!activeCourses.includes(c));
+ const dateLabel=(day:string)=>new Intl.DateTimeFormat(locale,{month:'short',day:'numeric',weekday:'short',timeZone:'UTC'}).format(new Date(day+'T12:00:00Z'));
+ const nextExam=model.future.find(e=>e.type==='exam');
+ const selectCourse=(c:string)=><button key={c} style={courseStyle(c)} className={course===c?'active':''} aria-pressed={course===c} onClick={()=>setCourse(c)}>{c!=='all'&&<i/>}<span>{c==='all'?(zh?'全部':'All'):c}</span><b>{c==='all'?model.future.length:model.courseCounts[c]||0}</b></button>;
+ return <div className="overview-grid journal-overview"><div className="primary-column">
+  <header className="journal-header"><div className="journal-date"><span>{new Intl.DateTimeFormat(locale,{month:'short',timeZone:zone}).format(now)}</span><strong>{new Intl.DateTimeFormat(locale,{day:'numeric',timeZone:zone}).formatToParts(now).find(p=>p.type==='day')?.value}</strong></div><div><p className="eyebrow">{new Intl.DateTimeFormat(locale,{weekday:'long',timeZone:zone}).format(now)}</p><h1>{zh?'把今天安排清楚。':'Make room for what matters.'}</h1><p className="journal-caption">{zh?'课程、截止时间与考试，在这里对齐。':'Your coursework, deadlines and exams, in one place.'}</p></div></header>
+  <section className="today-summary" aria-label={zh?'今天的安排':'Today at a glance'}><button onClick={onCalendar}><span><CheckCircle size={16}/>{zh?'今天截止':'Due today'}</span><strong className="today-tasks-count">{model.todayTasks.length}</strong></button><button onClick={onExams}><span><GraduationCap size={17}/>{zh?'今天考试':'Exams today'}</span><strong className="today-exams-count">{model.todayExams.length}</strong></button><button onClick={onCalendar}><span><CalendarBlank size={16}/>{zh?'未来安排':'Upcoming'}</span><strong>{model.future.length}</strong></button></section>
+  {model.todayExams.length>0&&<div className="today-exam-notice"><GraduationCap size={18}/><div><strong>{zh?'今天有考试':'You have an exam today'}</strong><span>{model.todayExams.map(e=>`${e.course} · ${e.title}`).join(' / ')}</span></div><button className="text-button" onClick={onExams}>{zh?'查看':'View'}<ArrowRight size={15}/></button></div>}
+  <NextClasses state={state}/>
+  <section className="task-section agenda-section"><header className="section-title"><div><p className="eyebrow">{zh?'你的日程':'YOUR AGENDA'}</p><h2>{zh?'即将到来':'Coming up'}</h2></div><button className="text-button" onClick={onAdd}><Plus size={16}/>{zh?'添加事项':'Add item'}</button></header>
+   <div className="agenda-filters"><div className="course-filters" aria-label={zh?'课程':'Course'}>{['all',...activeCourses].map(selectCourse)}</div>{otherCourses.length>0&&<details className="more-courses"><summary>{zh?'全部课程':'All courses'} <span>{allCourses.length}</span></summary><div className="course-filters">{otherCourses.map(selectCourse)}</div></details>}</div>
+   {groups.map(group=><section className="agenda-date-group" key={group.day}><header><h3>{group.day===model.today?(zh?'今天':'Today'):dateLabel(group.day)}</h3><span>{group.entries.length} {zh?'项安排':'items'}</span></header><div className="agenda-items">{group.entries.map(e=>e.type==='exam'?renderExam(e):renderTask(e))}</div></section>)}
+   {!filtered.length&&<div className="agenda-empty"><CalendarBlank size={28}/><h3>{zh?'暂无已定时的安排':'No scheduled items ahead'}</h3><p>{model.undated.length?(zh?'还有事项的时间尚未公布，可在下方查看。':'Some items still have unpublished dates; see below.'):(zh?'后续读取到的截止时间和考试会显示在这里。':'New deadlines and exams will appear here after syncing.')}</p><button className="button secondary" onClick={onAdd}><Plus size={15}/>{zh?'添加个人事项':'Add personal item'}</button></div>}
+   {remaining>0&&<button className="button secondary agenda-more" onClick={()=>setDaysShown(filtered.length)}><ArrowDown size={16}/>{zh?`继续查看 · 还有 ${remaining} 项安排`:`Show more · ${remaining} more items`}</button>}
+  </section>
+  {model.undated.filter(e=>course==='all'||e.course===course).length>0&&<details className="pending-dates"><summary><Clock size={15}/>{zh?'时间尚未公布':'Dates not published'}<b>{model.undated.filter(e=>course==='all'||e.course===course).length}</b></summary><p className="small muted">{zh?'保留原始记录，时间公布后再安排。':'Saved records remain available until dates are announced.'}</p>{model.undated.filter(e=>course==='all'||e.course===course).map(e=>e.type==='exam'?renderExam(e):renderTask(e))}</details>}
+  {model.overdue.filter(e=>course==='all'||e.course===course).length>0&&<details className="overdue-group"><summary><Warning size={15}/>{zh?'已过截止日期 · 待核对':'Past due dates · review needed'}<b>{model.overdue.filter(e=>course==='all'||e.course===course).length}</b></summary><p className="overdue-accuracy">{zh?'可能存在同步延迟或平台未提供提交状态；请以课程平台记录为准。':'Sync delays or unavailable submission status can affect this list. Verify on the course platform.'}</p>{model.overdue.filter(e=>course==='all'||e.course===course).map(renderTask)}</details>}
+ </div><aside className="secondary-column">
+  {nextExam&&<section className="next-assessment"><p className="eyebrow">{zh?'下一场考试':'NEXT EXAM'}</p><span className="course-indicator" style={courseStyle(nextExam.course)}>{nextExam.course}</span><h2>{nextExam.title}</h2><p>{fmtEntry(nextExam,locale,zone)}</p><p className="small muted">{nextExam.dateOnly?(zh?'具体时刻未公布':'Exact time not published'):nextExam.location||''}</p><button className="text-button" onClick={onExams}>{zh?'考试与测验':'Exams and quizzes'}<ArrowRight size={15}/></button></section>}
+  {sources}<button className="source-settings-link text-button" onClick={onSources}>{zh?'管理连接与同步':'Manage sources and sync'}<ArrowRight size={15}/></button>{resources}
+ </aside></div>;
+}

@@ -6,6 +6,7 @@ import {type AppState,type Entry} from '../domain';
 export function campusInstant(text:string,zone='America/Toronto'):string|null{try{return Temporal.PlainDateTime.from(text).toZonedDateTime(zone,{disambiguation:'reject'}).toInstant().toString()}catch{return null}}
 export const stamp=(e:Entry)=>e.type==='exam'?e.start:e.due;
 export function fmt(iso:string|null,locale:string,zone:string,withTime=true):string{if(!iso)return locale==='zh-CN'?'尚未公布':'Not published';return new Intl.DateTimeFormat(locale,{timeZone:zone,month:'short',day:'numeric',...(withTime?{hour:'2-digit',minute:'2-digit',hourCycle:'h23' as const}:{} )}).format(new Date(iso))}
+export function fmtEntry(e:Entry,locale:string,zone:string,withTime=true):string{return e.dateOnly?fmt(e.dateOnly+'T12:00:00Z',locale,'UTC',false):fmt(stamp(e),locale,zone,withTime)}
 export function localInput(iso:string|null,zone:string):string{return iso?Temporal.Instant.from(iso).toZonedDateTimeISO(zone).toPlainDateTime().toString().slice(0,16):''}
 export function examConflicts(entries:Entry[]):Array<[Entry,Entry]>{const es=entries.filter(e=>e.type==='exam'&&e.start&&e.end&&!e.gone);const out:Array<[Entry,Entry]>=[];for(let i=0;i<es.length;i++)for(let j=i+1;j<es.length;j++)if(es[i].start!<es[j].end!&&es[j].start!<es[i].end!)out.push([es[i],es[j]]);return out}
 export function planReminders(s:AppState,now:string){
