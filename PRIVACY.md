@@ -1,6 +1,6 @@
 # WatDesk Privacy Policy / 隐私政策
 
-Effective date: October 26, 2026. Applies to WatDesk for Microsoft Edge, version 1.3.0 and later unless updated here.
+Effective date: October 27, 2026. Applies to WatDesk for Microsoft Edge, version 1.3.0 and later unless updated here.
 
 WatDesk is an independent project maintained by Jelly-RayTian. It is not an official University of Waterloo product. Project and privacy contact: https://github.com/Jelly-RayTian/WatDesk/issues . Do not include private academic records, passwords or verification codes in a public issue.
 
@@ -28,7 +28,7 @@ JSON backups, CSV grades, ICS calendars and offline HTML exports are files you e
 
 ## Control and retention
 
-You can adjust the synchronization interval, including manual-only mode, hide or mute courses, disable optional sources and the optional sign-in helper, manage reminders, clear individual source records or local data through Settings, and revoke site permissions in Microsoft Edge. Hidden courses are retained locally and can be shown again. Failed source reads may retain the last successful snapshot rather than silently deleting it. Local information remains until replaced through synchronization or explicitly removed. Uninstalling the extension removes its extension-local data; source-platform records and your previously exported files are unaffected.
+You can adjust the synchronization interval, including manual-only mode, hide or mute courses, delete personal items, hide individual synced items from the calendar and restore them later, disable optional sources and the optional sign-in helper, manage reminders, clear individual source records or local data through Settings, and revoke site permissions in Microsoft Edge. Hidden courses are retained locally and can be shown again. Failed source reads may retain the last successful snapshot rather than silently deleting it. Local information remains until replaced through synchronization or explicitly removed. Uninstalling the extension removes its extension-local data; source-platform records and your previously exported files are unaffected.
 
 If a source account changes, WatDesk may stop replacement until that source's saved data is cleared. Sign out of school platforms through those platforms; removing WatDesk is not a platform sign-out operation.
 
