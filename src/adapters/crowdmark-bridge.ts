@@ -15,6 +15,6 @@ export async function crowdmarkRelay(path:string){
  if(url.origin!=='https://app.crowdmark.com'||!url.pathname.startsWith('/api/v2/student/'))throw Error('path');
  let tabs:chrome.tabs.Tab[];try{tabs=await chrome.tabs.query({url:matches})}catch{return {noTab:true}}
  tabs.sort((a,b)=>Number(b.active)-Number(a.active)||(b.lastAccessed||0)-(a.lastAccessed||0));
- for(const tab of tabs){if(!tab.id||tab.discarded||tab.frozen||tab.status!=='complete')continue;try{const res=await withTimeout(chrome.tabs.sendMessage(tab.id,{type:'crowdmark:fetch',path}),22000);if(res)return res}catch{/* Try another already-open tab. */}}
+ for(const tab of tabs){if(!tab.id||tab.discarded||tab.frozen||tab.status!=='complete')continue;try{const res=await withTimeout(chrome.tabs.sendMessage(tab.id,{type:'crowdmark:fetch',path:url.pathname+url.search}),22000);if(res)return res}catch{/* Try another already-open tab. */}}
  return {noTab:true};
 }

@@ -51,6 +51,10 @@ export function validateBackup(text:string):AppState{
  if(typeof s.settings.notifications!=='boolean'||s.settings.examLeads.length>10||s.settings.mutedCourses.some((v:unknown)=>typeof v!=='string'))throw Error('restoreError');
  const record=(v:unknown)=>!!v&&typeof v==='object'&&!Array.isArray(v);
  if(!record(s.overlays)||!record(s.sources)||!record(s.sent))throw Error('restoreError');
+ // JSON.parse keeps '__proto__' as an own key; assigning it later would rewrite an object's prototype.
+ const unsafeKey=(k:string)=>k==='__proto__'||k==='constructor'||k==='prototype';
+ for(const map of [s.overlays,s.sources,s.sent,s.settings.gradePlans,s.settings.courseReminders])if(record(map)&&Object.keys(map).some(unsafeKey))throw Error('restoreError');
+ for(const e of s.entries)if(unsafeKey(String(e.id)))throw Error('restoreError');
  const ids=new Set<string>();for(const e of s.entries){if(e.dateOnly!==undefined&&(typeof e.dateOnly!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(e.dateOnly)||!campusInstant(e.dateOnly+'T23:59:59')))throw Error('restoreError');if(ids.has(e.id))throw Error('restoreError');ids.add(e.id);for(const k of ['location','seat','duration'])if(e[k]!==undefined&&typeof e[k]!=='string')throw Error('restoreError')}
  for(const c of s.courses)if(!c||typeof c.id!=='string'||typeof c.code!=='string'||typeof c.name!=='string'||c.term!==undefined&&typeof c.term!=='string')throw Error('restoreError');
  for(const o of Object.values(s.overlays) as any[]){if(!record(o)||o.note!==undefined&&typeof o.note!=='string'||o.linkedTo!=null&&typeof o.linkedTo!=='string'||o.keepSeparate!==undefined&&typeof o.keepSeparate!=='boolean'||o.done!==undefined&&typeof o.done!=='boolean'||o.hidden!==undefined&&typeof o.hidden!=='boolean')throw Error('restoreError')}

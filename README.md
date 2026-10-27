@@ -1,16 +1,16 @@
 # WatDesk
 
-**Latest release / 最新发布：[v1.3.2](https://github.com/Jelly-RayTian/WatDesk/releases/tag/v1.3.2)** · [Download ZIP / 下载安装包](https://github.com/Jelly-RayTian/WatDesk/releases/download/v1.3.2/WatDesk-v1.3.2-edge.zip) · [Privacy / 隐私政策](https://github.com/Jelly-RayTian/WatDesk/blob/v1.3.2/PRIVACY.md) · [Support / 问题反馈](https://github.com/Jelly-RayTian/WatDesk/issues)
+**Latest release / 最新发布：[v1.4.0](https://github.com/Jelly-RayTian/WatDesk/releases/tag/v1.4.0)** · [Download ZIP / 下载安装包](https://github.com/Jelly-RayTian/WatDesk/releases/download/v1.4.0/WatDesk-v1.4.0-edge.zip) · [Privacy / 隐私政策](https://github.com/Jelly-RayTian/WatDesk/blob/v1.4.0/PRIVACY.md) · [Support / 问题反馈](https://github.com/Jelly-RayTian/WatDesk/issues)
 
-This guide describes v1.3.2. The default `main` branch includes v1.3.2; its exact released source is preserved at the [v1.3.2 tag](https://github.com/Jelly-RayTian/WatDesk/tree/v1.3.2). GitHub downloads are available now. Edge Add-ons submission is a separate process; a store installation link will be added when available.
+This guide describes v1.4.0. The default `main` branch includes v1.4.0; its exact released source is preserved at the [v1.4.0 tag](https://github.com/Jelly-RayTian/WatDesk/tree/v1.4.0). GitHub downloads are available now. Edge Add-ons submission is a separate process; a store installation link will be added when available.
 
-本页说明对应 v1.3.2。默认 `main` 分支已包含该版本，发布时的精确源码保留在上方版本标签。GitHub 安装包已公开，Edge 商店提交与 GitHub 发布分别进行，商店安装链接将在可用后补充。
+本页说明对应 v1.4.0。默认 `main` 分支已包含该版本，发布时的精确源码保留在上方版本标签。GitHub 安装包已公开，Edge 商店提交与 GitHub 发布分别进行，商店安装链接将在可用后补充。
 
 Independent bilingual academic workspace for University of Waterloo. Edge Manifest V3 extension with a side panel and full-page workspace.
 
 ## Install / 安装
 
-1. Download the v1.3.2 ZIP above and extract it. Open `edge://extensions`, enable **Developer mode**, choose **Load unpacked**, and select the extracted folder containing `manifest.json` directly. / 下载上方 ZIP 并解压，打开扩展管理页，启用开发人员模式，加载直接包含 `manifest.json` 的文件夹。
+1. Download the v1.4.0 ZIP above and extract it. Open `edge://extensions`, enable **Developer mode**, choose **Load unpacked**, and select the extracted folder containing `manifest.json` directly. / 下载上方 ZIP 并解压，打开扩展管理页，启用开发人员模式，加载直接包含 `manifest.json` 的文件夹。
 2. Pin WatDesk and click its toolbar icon to open the side panel. On first launch, connect LEARN, Crowdmark and Odyssey using your own authorized accounts. Complete passwords and MFA on the original sites. All three enabled core sources must connect before entering the workspace. CS135 and Möbius are optional. / 固定扩展后打开侧栏，首次使用需连接三个核心来源，密码与验证码在原网站输入；CS135 和 Möbius 为可选来源。
 3. Review imported courses, then enter the workspace. Use **More actions → Open full workspace** for the full page. / 核对导入课程后进入工作台，可从“更多操作”打开完整面板。
 
@@ -43,10 +43,10 @@ Data stays in this extension's local browser storage. No WatDesk server, analyti
 
 ## Develop
 
-Build the released version from the **v1.3.2 tag**, for a reproducible release checkout:
+Build the released version from the **v1.4.0 tag**, for a reproducible release checkout:
 
 ```sh
-git clone --branch v1.3.2 --depth 1 https://github.com/Jelly-RayTian/WatDesk.git
+git clone --branch v1.4.0 --depth 1 https://github.com/Jelly-RayTian/WatDesk.git
 cd WatDesk
 ```
 

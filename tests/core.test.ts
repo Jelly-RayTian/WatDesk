@@ -12,3 +12,11 @@ it('does not notify completed work or notify the same version twice',()=>{const 
 it('exports Chinese and stable IDs to a standards-compliant calendar',()=>{const s=emptyState('zh-CN');s.entries=[item];const ics=exportIcs(s);expect(ics).toContain('UID:learn-1@watdesk.local');expect(ics).toContain('DTSTART:20261020T010000Z');expect(ics.endsWith('\r\n')).toBe(true)});
 it('rejects unsafe or unsupported backup',()=>{expect(()=>validateBackup('{"schemaVersion":9}')).toThrow();expect(()=>validateBackup(JSON.stringify({...emptyState(),entries:[{...item,url:'javascript:alert(1)'}]}))).toThrow()});
 it('keeps third-party course links but drops unsafe ones so saves still validate',()=>{const s=emptyState();const r=applySnapshot(s,'learn',[{...item,url:'https://piazza.com/class/x'},{...item,id:'learn:2',url:'http://example.com/notes'},{...item,id:'learn:3',url:'javascript:alert(1)'},{...item,id:'learn:4',url:'https://piazza.com/a\r\nX:1'}],[],{status:'ok'});expect(r.entries.map(e=>e.url)).toEqual(['https://piazza.com/class/x','http://example.com/notes','','']);expect(()=>validateBackup(JSON.stringify(r))).not.toThrow();expect(()=>validateBackup(JSON.stringify({...r,entries:[{...item,platform:'manual',id:'manual:1',url:'https://piazza.com/class/x'}]}))).toThrow()});
+
+it('rejects prototype-polluting keys in backups',async()=>{
+ const {emptyState}=await import('../src/domain');const {validateBackup}=await import('../src/core/util');
+ const withOverlay=JSON.stringify(emptyState()).replace('"overlays":{}','"overlays":{"__proto__":{"hidden":true}}');
+ expect(()=>validateBackup(withOverlay)).toThrow('restoreError');
+ const s:any=emptyState();s.entries=[{id:'__proto__',platform:'manual',course:'',title:'x',type:'task',start:null,end:null,due:null,status:'open',url:''}];
+ expect(()=>validateBackup(JSON.stringify(s))).toThrow('restoreError');
+});
