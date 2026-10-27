@@ -44,3 +44,4 @@
 .palette-picker button.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
 .palette-picker i{width:16px;height:16px;border-radius:50%;border:1px solid #0002;background:linear-gradient(135deg,var(--sw1) 50%,var(--sw2) 50%)}
 .palette-picker [data-palette-option=forest]{--sw1:#1d2d25;--sw2:#e8c965}.palette-picker [data-palette-option=ocean]{--sw1:#12283a;--sw2:#8cc0e8}.palette-picker [data-palette-option=plum]{--sw1:#2b1d2c;--sw2:#dcaee6}.palette-picker [data-palette-option=graphite]{--sw1:#1c1c1e;--sw2:#d4d4d8}
+.hidden-items ul{list-style:none;margin:12px 0;padding:0;display:grid;gap:0}.hidden-items li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px;overflow-wrap:anywhere}.hidden-items li small{display:block;font-size:11px}

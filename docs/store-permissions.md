@@ -1,4 +1,4 @@
-# WatDesk 1.4.0 — Edge Add-ons permission justifications
+# WatDesk 1.4.1 — Edge Add-ons permission justifications
 
 Single purpose: organize a Waterloo student's own coursework, exams and grades from sites they are already signed in to. All data stays in local extension storage; there is no WatDesk server, analytics or remote code.
 
