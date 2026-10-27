@@ -2,9 +2,9 @@
 
 **Latest release / 最新发布：[v1.3.0](https://github.com/Jelly-RayTian/WatDesk/releases/tag/v1.3.0)** · [Download ZIP / 下载安装包](https://github.com/Jelly-RayTian/WatDesk/releases/download/v1.3.0/WatDesk-v1.3.0-edge-store.zip) · [Privacy / 隐私政策](https://github.com/Jelly-RayTian/WatDesk/blob/v1.3.0/PRIVACY.md) · [Support / 问题反馈](https://github.com/Jelly-RayTian/WatDesk/issues)
 
-This guide describes v1.3.0. Its source is available at the [v1.3.0 tag](https://github.com/Jelly-RayTian/WatDesk/tree/v1.3.0); the default `main` code branch has not yet incorporated this release. GitHub downloads are available now. Edge Add-ons submission is a separate process; a store installation link will be added when available.
+This guide describes v1.3.0. The default `main` branch includes v1.3.0; its exact released source is preserved at the [v1.3.0 tag](https://github.com/Jelly-RayTian/WatDesk/tree/v1.3.0). GitHub downloads are available now. Edge Add-ons submission is a separate process; a store installation link will be added when available.
 
-本页说明对应 v1.3.0。默认 `main` 代码尚未合入该版本，下载源码请选上方版本标签。GitHub 安装包已公开，Edge 商店提交与 GitHub 发布分别进行，商店安装链接将在可用后补充。
+本页说明对应 v1.3.0。默认 `main` 分支已包含该版本，发布时的精确源码保留在上方版本标签。GitHub 安装包已公开，Edge 商店提交与 GitHub 发布分别进行，商店安装链接将在可用后补充。
 
 Independent bilingual academic workspace for University of Waterloo. Edge Manifest V3 extension with a side panel and full-page workspace.
 
@@ -43,7 +43,7 @@ Data stays in this extension's local browser storage. No WatDesk server, analyti
 
 ## Develop
 
-Build the released version from the **v1.3.0 tag**, rather than the older default branch:
+Build the released version from the **v1.3.0 tag**, for a reproducible release checkout:
 
 ```sh
 git clone --branch v1.3.0 --depth 1 https://github.com/Jelly-RayTian/WatDesk.git
