@@ -33,14 +33,20 @@
 
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (!msg || msg.type !== "crowdmark:fetch") return false;
-    const path = String(msg.path || "");
-    if (!path.startsWith(ALLOWED) || path.includes("..")) {
+    let url;
+    try {
+      url = new URL(String(msg.path || ""), location.origin);
+    } catch {
+      url = null;
+    }
+    // Check the parsed path: the raw string can hide ".." as "%2e%2e".
+    if (!url || url.origin !== location.origin || !url.pathname.startsWith(ALLOWED)) {
       sendResponse({ status: 0, error: "path not allowed" });
       return false;
     }
     (async () => {
       try {
-        const res = await fetch(location.origin + path, {
+        const res = await fetch(url.href, {
           method: "GET",
           credentials: "same-origin",
           headers: { Accept: "application/vnd.api+json, application/json" },

@@ -1,5 +1,6 @@
 import {courseVisible} from './academic';
 import {mergeTasks,mergeScheduleExams,courseKey} from './organization';
+import {safeUrl} from './util';
 import {emptyState,type AppState,type Platform,type Course,type Entry,type SyncStatus} from '../domain';
 export function applySnapshot(state:AppState,platform:Platform,entries:Entry[],courses:Course[],status:SyncStatus):AppState{
  const s=structuredClone(state); const old=s.sources[platform];
@@ -9,8 +10,10 @@ export function applySnapshot(state:AppState,platform:Platform,entries:Entry[],c
  const ids=new Set(entries.map(e=>e.id));const now=new Date().toISOString();
  for(const e of entries){const p=previous.get(e.id);if(p){const before=[p.due,p.start,p.end,p.location,p.seat].join('|');const after=[e.due,e.start,e.end,e.location,e.seat].join('|');if(before!==after)s.changes.unshift({...(e.type==='exam'?{kind:'exam' as const}:{}),id:e.id,title:e.title,at:now,before,after})}}
  s.entries=[...s.entries.filter(e=>e.platform!==platform),...entries.map(e=>({...e,verifiedAt:e.readState==='retained'?e.verifiedAt||previous.get(e.id)?.verifiedAt||(e.gradeOnly?old?.gradesAt:old?.at):status.at||now,readState:e.readState||'fresh' as const})),...[...previous.values()].filter(e=>!ids.has(e.id)).map(e=>({...e,gone:true}))];
- s.courses=[...new Map([...s.courses,...courses].map(c=>[c.id,c])).values()];s.changes=s.changes.slice(0,100);return s;
+ s.entries=sanitizeUrls(s.entries);s.courses=[...new Map([...s.courses,...courses].map(c=>[c.id,c])).values()];s.changes=s.changes.slice(0,100);return s;
 }
+// Source links can point anywhere; keep only platform links so backups and settings saves still validate.
+export function sanitizeUrls(entries:Entry[]):Entry[]{return entries.map(e=>typeof e.url==='string'&&safeUrl(e.url)?e:{...e,url:''})}
 export function visibleEntries(s:AppState):Entry[]{const eligible=s.entries.filter(e=>!e.gradeOnly&&(e.platform!=='cs135'||s.settings.cs135Enabled===true)&&(e.platform!=='mobius'||s.settings.mobiusEnabled===true)&&courseVisible(e.course,s,e.readerCourseId)&&!s.overlays[e.id]?.hidden&&(!s.overlays[e.id]?.linkedTo||!s.entries.some(t=>t.id===s.overlays[e.id].linkedTo&&!t.gone&&!s.overlays[t.id]?.hidden)));return mergeScheduleExams(mergeTasks(eligible,s),s)}
 export function clearSource(s:AppState,p:Platform):AppState{
  const ids=new Set(s.entries.filter(e=>e.platform===p).map(e=>e.id));const sources={...s.sources};delete sources[p];
