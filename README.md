@@ -50,7 +50,7 @@ git clone --branch v1.3.0 --depth 1 https://github.com/Jelly-RayTian/WatDesk.git
 cd WatDesk
 ```
 
-Node 22+ and pnpm: `pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm package`.
+Node 22.13+ and pnpm: `pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm package`.
 
 Production builds exclude `preview.html` and `tests/preview.ts`, which use clearly isolated development fixtures and no real login. Runtime assets are bundled locally. See `THIRD_PARTY_NOTICES.md` for the two MIT readers reused from WATnow; all WatDesk product UI, state, schedule parsers, calendar and packaging are independent.
 
@@ -71,6 +71,14 @@ Enable **学校登录自动继续 / School sign-in helper** in Settings and gran
 Before packaging, type checking, 221 tests across 48 files and the production build passed. The ZIP manifest is v1.3.0 and its SHA-256 is `66012e37cbaedb54666128cfef4f7b9ba66a9fb49fbdcb21fba6795e0fd3b53a`. Build and fixture checks do not establish authenticated behavior for every account or course. Report platform issues with the installed version and source status, without posting credentials or private academic records.
 
 发布前通过类型检查、48 个文件中的 221 项测试及生产构建。测试通过不等于所有账号、课程和平台都已实测；反馈时请提供版本及来源状态，不要公开密码或私人课程记录。
+
+## v1.3.2 — PDF schedules and calendar quick add (source / 源码更新)
+
+LEARN Course Schedule PDFs can now be fetched using the existing browser session and parsed locally with bundled Mozilla PDF.js. The current parser recognizes explicit assignment deadlines, numbered Quiz intervals, Midterm intervals and an explicitly undated Final Exam. Tested against the MATH 135 schedule. Scanned PDFs require OCR and are reported as unreadable; unfamiliar layouts, missing dates or ambiguous clock ranges are not guessed. Files are limited to 2 MB and 20 pages. Same-course PDF/Odyssey exams merge only when both exact start and end match, retaining Odyssey room/seat; conflicts stay separate. Other course tool restrictions remain visible.
+
+Double-click a calendar date or blank cell in month/week view to open a personal item with that date filled in. Clicking an existing event opens it; it does not create another item. Keyboard users can still use the selected-day Add item button.
+
+LEARN 的课程日程 PDF 通过现有登录会话读取，在本机解析，不上传到第三方。已用真实 MATH 135 日程核对；无法识别的版式、扫描件或不明确的日期不会猜测。月/周日历可双击日期或空白格新增事项并自动带入日期。上方 v1.3.0 Release 及商店送审包尚不包含本次更新。
 
 ## v1.3.1 — session recovery fix (source / 源码更新)
 

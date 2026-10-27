@@ -23,3 +23,9 @@ it('localizes availability without claiming the instructor has not released grad
  const issue=learnIssue('MATH 135','grades',{code:'not-found',status:404});
  expect(formatLearnIssue(issue,true)).toContain('HTTP 404');expect(formatLearnIssue(issue,false)).toContain('MATH 135');expect(formatLearnIssue(issue,true)).not.toContain('未公布');
 });
+it('keeps schedule parser causes and classifies unsupported PDF as an availability notice',()=>{
+ expect(learnIssue('MATH 135','schedule',Error('schedule-pdf-unsupported'))).toMatchObject({code:'schedule-pdf-unsupported',kind:'unavailable'});
+ expect(formatLearnIssue(learnIssue('MATH 135','schedule',Error('schedule-pdf-unsupported')),true)).toContain('PDF');
+ expect(learnIssue('MATH 135','schedule',Error('schedule-file-path'))).toMatchObject({code:'schedule-file-path',kind:'failed'});
+ expect(learnIssue('MATH 135','schedule',Error('http:503'))).toMatchObject({code:'http',status:503,kind:'failed'});
+});

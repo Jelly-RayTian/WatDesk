@@ -1,4 +1,5 @@
-import {backgroundHtml,parseBackgroundHtml} from './background-html';
+import {parsePdfSchedule} from './pdf-schedule';
+import {backgroundHtml,parseBackgroundHtml,backgroundPdf,parseBackgroundPdf} from './background-html';
 import type {Entry} from '../domain';
 import {campusInstant} from '../core/util';
 function date(text:string){const m=text.replace(/\u00a0/g,' ').match(/\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s*(\d{4})\s+at\s+(\d{1,2}):(\d{2})\s*(AM|PM)\b/i);if(!m||Number(m[4])<1||Number(m[4])>12)return null;const month=['january','february','march','april','may','june','july','august','september','october','november','december'].indexOf(m[1].toLowerCase())+1;return campusInstant(`${m[3]}-${String(month).padStart(2,'0')}-${m[2].padStart(2,'0')}T${String(Number(m[4])%12+(m[6].toUpperCase()==='PM'?12:0)).padStart(2,'0')}:${m[5]}`)}
@@ -24,7 +25,13 @@ export async function readLearnSchedule(source:any,course:any,_tabId?:number):Pr
   if(!/^\d+$/.test(String(t.Id)))throw Error('schedule-topic-id');
   let url=`https://learn.uwaterloo.ca/d2l/api/le/${le}/${orgUnitId}/content/topics/${t.Id}/file?stream=true`;
   if(typeof t.Url==='string'&&t.Url){const target=new URL(t.Url,'https://learn.uwaterloo.ca');if(target.origin!=='https://learn.uwaterloo.ca'||!target.pathname.startsWith('/content/enforced/'+orgUnitId+'-'))throw Error('schedule-file-path');url=target.href}
-  const rows=await parseBackgroundHtml<string[][]>('rows',await backgroundHtml(url));entries.push(...parseScheduleRows(rows,course.code,orgUnitId,String(t.Id),topics).map(e=>({...e,readerCourseId:String(course.id)})));
+  if(/\.pdf$/i.test(new URL(url).pathname)){
+   const text=await parseBackgroundPdf(await backgroundPdf(url));const parsed=parsePdfSchedule(text,course.code,orgUnitId,String(t.Id));
+   if(!parsed.length)throw Error('pdf-schedule-unrecognized');
+   entries.push(...parsed.map(e=>({...e,readerCourseId:String(course.id)})));continue;
+  }
+  let html:string;try{html=await backgroundHtml(url)}catch(e){if(e instanceof Error&&e.message==='expected-html')throw Error('schedule-format-unsupported');throw e}
+  const rows=await parseBackgroundHtml<string[][]>('rows',html);entries.push(...parseScheduleRows(rows,course.code,orgUnitId,String(t.Id),topics).map(e=>({...e,readerCourseId:String(course.id)})));
  }
  return entries;
 }

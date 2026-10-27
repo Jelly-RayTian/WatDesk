@@ -19,6 +19,20 @@ export function mergeTasks(entries:Entry[],s:AppState):Entry[]{
  }
  return singles;
 }
+// Only merge a PDF schedule exam with a single Odyssey record at the exact
+// same course/start/end. Conflicting times and keep-separate choices remain visible.
+export function mergeScheduleExams(entries:Entry[],s:AppState):Entry[]{
+ const groups=new Map<string,Entry[]>();const result:Entry[]=[];
+ for(const e of entries){
+  if(e.type!=='exam'||!e.start||!e.end||e.gone||s.overlays[e.id]?.keepSeparate||!(e.platform==='odyssey'||e.platform==='learn'&&e.seenIn?.includes('pdf-schedule'))){result.push(e);continue}
+  const key=[courseKey(e.course),e.start,e.end].join('|');groups.set(key,[...groups.get(key)||[],e]);
+ }
+ for(const group of groups.values()){
+  const official=group.filter(e=>e.platform==='odyssey'),pdf=group.filter(e=>e.platform==='learn');
+  if(official.length===1&&pdf.length===1)result.push({...official[0],mergedIds:[official[0].id,pdf[0].id]});else result.push(...group);
+ }
+ return result;
+}
 export function personallyDone(e:Entry,s:AppState){return (e.mergedIds||[e.id]).some(id=>s.overlays[id]?.done)}
 export function personalNote(e:Entry,s:AppState){return [...new Set((e.mergedIds||[e.id]).map(id=>s.overlays[id]?.note||'').filter(Boolean))].join('\n')}
 export function estimateGrade(entries:Entry[],plan:GradePlan){
