@@ -72,6 +72,12 @@ Before packaging, type checking, 221 tests across 48 files and the production bu
 
 发布前通过类型检查、48 个文件中的 221 项测试及生产构建。测试通过不等于所有账号、课程和平台都已实测；反馈时请提供版本及来源状态，不要公开密码或私人课程记录。
 
+## v1.4.0 — selectable styles and calendar delete
+
+- **Style picker / 界面风格**: Settings → Language & appearance now offers Forest, Ocean, Plum and Graphite, each with light and dark variants. / 设置中可选择森林、海洋、梅紫、石墨四种风格，均支持浅色与深色。
+- **Calendar delete / 日历删除**: personal items can be deleted from the calendar; synced items can be hidden and restored from the bottom of the calendar. / 日历中可删除个人事项，同步事项可隐藏并在日历底部恢复。
+- Explicit extension-page CSP and 16/32/48/128 px icons for Edge store submission. / 增加扩展页面 CSP 与多尺寸图标。
+
 ## v1.3.2 — PDF schedules and calendar quick add
 
 LEARN Course Schedule PDFs can now be fetched using the existing browser session and parsed locally with bundled Mozilla PDF.js. The current parser recognizes explicit assignment deadlines, numbered Quiz intervals, Midterm intervals and an explicitly undated Final Exam. Tested against the MATH 135 schedule. Scanned PDFs require OCR and are reported as unreadable; unfamiliar layouts, missing dates or ambiguous clock ranges are not guessed. Files are limited to 2 MB and 20 pages. Same-course PDF/Odyssey exams merge only when both exact start and end match, retaining Odyssey room/seat; conflicts stay separate. Other course tool restrictions remain visible.

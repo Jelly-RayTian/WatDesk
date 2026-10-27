@@ -42,6 +42,7 @@ export function validateBackup(text:string):AppState{
  if(s.settings.hiddenCourses!==undefined&&(!Array.isArray(s.settings.hiddenCourses)||s.settings.hiddenCourses.some((c:unknown)=>typeof c!=='string')))throw Error('restoreError');
  if(s.settings.gradePlans!==undefined){if(!s.settings.gradePlans||typeof s.settings.gradePlans!=='object'||Array.isArray(s.settings.gradePlans))throw Error('restoreError');for(const p of Object.values(s.settings.gradePlans) as any[]){if(!p||!p.weights||typeof p.weights!=='object'||Array.isArray(p.weights)||Object.values(p.weights).some((v:any)=>typeof v!=='number'||!Number.isFinite(v)||v<0||v>100)||p.target!==undefined&&(typeof p.target!=='number'||!Number.isFinite(p.target)||p.target<0||p.target>100))throw Error('restoreError')}}
  if(s.settings.syncIntervalMinutes!==undefined&&(!Number.isInteger(s.settings.syncIntervalMinutes)||s.settings.syncIntervalMinutes!==0&&(s.settings.syncIntervalMinutes<30||s.settings.syncIntervalMinutes>10080)))throw Error('restoreError');
+ if(s.settings.palette!==undefined&&!['forest','ocean','plum','graphite'].includes(s.settings.palette))throw Error('restoreError');
  if(s.settings.schoolAutoNext!==undefined&&typeof s.settings.schoolAutoNext!=='boolean')throw Error('restoreError');
  if(s.settings.mobiusEnabled!==undefined&&typeof s.settings.mobiusEnabled!=='boolean')throw Error('restoreError');
  if(s.settings.cs135Enabled!==undefined&&typeof s.settings.cs135Enabled!=='boolean')throw Error('restoreError');

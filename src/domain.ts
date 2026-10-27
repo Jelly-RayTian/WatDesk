@@ -1,5 +1,7 @@
 export type Platform='learn'|'crowdmark'|'odyssey'|'cs135'|'mobius'|'manual';
 export type Locale='zh-CN'|'en';
+export type Palette='forest'|'ocean'|'plum'|'graphite';
+export const palettes:Palette[]=['forest','ocean','plum','graphite'];
 export interface Course {id:string;code:string;name:string;term?:string}
 export interface GradePlan {weights:Record<string,number>;target?:number}
 export interface ClassMeeting {id:string;course:string;title:string;weekday:number;start:string;end:string;location:string;leadMinutes:number;enabled:boolean}
@@ -7,7 +9,7 @@ export interface Entry {dateOnly?:string;submissionState?:'submitted'|'not-found
 export interface Overlay {keepSeparate?:boolean;done?:boolean;note?:string;hidden?:boolean;linkedTo?:string}
 export interface LearnReadIssue {course:string;tool:string;code:string;status?:number;kind:'unavailable'|'failed'}
 export interface SyncStatus {scheduleVersion?:number;gradesArchiveAt?:string;gradesAttemptAt?:string;courseReadAt?:Record<string,string>;issues?:LearnReadIssue[];phase?:'page'|'tasks'|'grades';durationMs?:number;gradesAt?:string;status:'idle'|'syncing'|'ok'|'error';attempt?:string;at?:string;error?:string;count?:number;identity?:string}
-export interface Settings {syncIntervalMinutes?:number;schoolAutoNext?:boolean;activeTerm?:string;classMeetings?:ClassMeeting[];courseReminders?:Record<string,{taskLead:number;examLeads:number[]}>;hiddenCourses?:string[];gradePlans?:Record<string,GradePlan>;cs135Enabled?:boolean;mobiusEnabled?:boolean;onboardingComplete?:boolean;visualVersion?:number;locale:Locale;theme:'system'|'light'|'dark';zone:string;taskLead:number;examLeads:number[];notifications:boolean;mutedCourses:string[]}
+export interface Settings {syncIntervalMinutes?:number;schoolAutoNext?:boolean;activeTerm?:string;classMeetings?:ClassMeeting[];courseReminders?:Record<string,{taskLead:number;examLeads:number[]}>;hiddenCourses?:string[];gradePlans?:Record<string,GradePlan>;cs135Enabled?:boolean;mobiusEnabled?:boolean;onboardingComplete?:boolean;visualVersion?:number;locale:Locale;theme:'system'|'light'|'dark';palette?:Palette;zone:string;taskLead:number;examLeads:number[];notifications:boolean;mutedCourses:string[]}
 export interface SyncRun {reused?:Exclude<Platform,'manual'>[];started:number;targets:Exclude<Platform,'manual'>[];completed:Exclude<Platform,'manual'>[];active?:Exclude<Platform,'manual'>;failed?:Exclude<Platform,'manual'>;finished:boolean}
 export interface AppState {syncRun?:SyncRun;schemaVersion:1;settings:Settings;courses:Course[];entries:Entry[];overlays:Record<string,Overlay>;sources:Record<string,SyncStatus>;sent:Record<string,string>;changes:Array<{kind?:'exam';id:string;title:string;at:string;before:string;after:string}>}
 export function emptyState(locale:Locale='en'):AppState{return {schemaVersion:1,settings:{syncIntervalMinutes:360,visualVersion:3,locale,theme:'light',zone:'America/Toronto',taskLead:1440,examLeads:[1440,60],notifications:true,mutedCourses:[]},courses:[],entries:[],overlays:{},sources:{},sent:{},changes:[]}}
