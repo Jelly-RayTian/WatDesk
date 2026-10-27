@@ -13,5 +13,5 @@ Single purpose: organize a Waterloo student's own coursework, exams and grades f
 | Host `learn.uwaterloo.ca`, `app.crowdmark.com`, `odyssey.uwaterloo.ca` | Reads the user's own deadlines, exams and released grades from these services. |
 | Optional hosts `student.cs.uwaterloo.ca`, `adfs.uwaterloo.ca`, `uwmo.mobius.cloud` | Requested only when the user turns on CS 135, the username-only sign-in helper, or Möbius. The helper never reads passwords or verification codes. |
 
-Extension-page CSP: `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; object-src 'none'; connect-src 'self'` (no remote scripts, fonts or connections from extension pages).
+Extension-page CSP: `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; object-src 'none'; connect-src 'self' + the five source hosts` (no remote scripts, fonts or connections from extension pages).
 Icons: 16, 32, 48 and 128 px are bundled. The store listing also needs a separate 300x300 logo and 1280x800 screenshots, which are not part of the package.

@@ -44,6 +44,6 @@
     "https://odyssey.uwaterloo.ca/*"
   ],
   "content_security_policy": {
-    "extension_pages": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src 'self'"
+    "extension_pages": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://learn.uwaterloo.ca https://app.crowdmark.com https://odyssey.uwaterloo.ca https://student.cs.uwaterloo.ca https://uwmo.mobius.cloud"
   }
 }
