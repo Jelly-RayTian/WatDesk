@@ -1,16 +1,16 @@
 # WatDesk
 
-**Latest release / 最新发布：[v1.3.0](https://github.com/Jelly-RayTian/WatDesk/releases/tag/v1.3.0)** · [Download ZIP / 下载安装包](https://github.com/Jelly-RayTian/WatDesk/releases/download/v1.3.0/WatDesk-v1.3.0-edge-store.zip) · [Privacy / 隐私政策](https://github.com/Jelly-RayTian/WatDesk/blob/v1.3.0/PRIVACY.md) · [Support / 问题反馈](https://github.com/Jelly-RayTian/WatDesk/issues)
+**Latest release / 最新发布：[v1.3.2](https://github.com/Jelly-RayTian/WatDesk/releases/tag/v1.3.2)** · [Download ZIP / 下载安装包](https://github.com/Jelly-RayTian/WatDesk/releases/download/v1.3.2/WatDesk-v1.3.2-edge.zip) · [Privacy / 隐私政策](https://github.com/Jelly-RayTian/WatDesk/blob/v1.3.2/PRIVACY.md) · [Support / 问题反馈](https://github.com/Jelly-RayTian/WatDesk/issues)
 
-This guide describes v1.3.0. The default `main` branch includes v1.3.0; its exact released source is preserved at the [v1.3.0 tag](https://github.com/Jelly-RayTian/WatDesk/tree/v1.3.0). GitHub downloads are available now. Edge Add-ons submission is a separate process; a store installation link will be added when available.
+This guide describes v1.3.2. The default `main` branch includes v1.3.2; its exact released source is preserved at the [v1.3.2 tag](https://github.com/Jelly-RayTian/WatDesk/tree/v1.3.2). GitHub downloads are available now. Edge Add-ons submission is a separate process; a store installation link will be added when available.
 
-本页说明对应 v1.3.0。默认 `main` 分支已包含该版本，发布时的精确源码保留在上方版本标签。GitHub 安装包已公开，Edge 商店提交与 GitHub 发布分别进行，商店安装链接将在可用后补充。
+本页说明对应 v1.3.2。默认 `main` 分支已包含该版本，发布时的精确源码保留在上方版本标签。GitHub 安装包已公开，Edge 商店提交与 GitHub 发布分别进行，商店安装链接将在可用后补充。
 
 Independent bilingual academic workspace for University of Waterloo. Edge Manifest V3 extension with a side panel and full-page workspace.
 
 ## Install / 安装
 
-1. Download the v1.3.0 ZIP above and extract it. Open `edge://extensions`, enable **Developer mode**, choose **Load unpacked**, and select the extracted folder containing `manifest.json` directly. / 下载上方 ZIP 并解压，打开扩展管理页，启用开发人员模式，加载直接包含 `manifest.json` 的文件夹。
+1. Download the v1.3.2 ZIP above and extract it. Open `edge://extensions`, enable **Developer mode**, choose **Load unpacked**, and select the extracted folder containing `manifest.json` directly. / 下载上方 ZIP 并解压，打开扩展管理页，启用开发人员模式，加载直接包含 `manifest.json` 的文件夹。
 2. Pin WatDesk and click its toolbar icon to open the side panel. On first launch, connect LEARN, Crowdmark and Odyssey using your own authorized accounts. Complete passwords and MFA on the original sites. All three enabled core sources must connect before entering the workspace. CS135 and Möbius are optional. / 固定扩展后打开侧栏，首次使用需连接三个核心来源，密码与验证码在原网站输入；CS135 和 Möbius 为可选来源。
 3. Review imported courses, then enter the workspace. Use **More actions → Open full workspace** for the full page. / 核对导入课程后进入工作台，可从“更多操作”打开完整面板。
 
@@ -43,10 +43,10 @@ Data stays in this extension's local browser storage. No WatDesk server, analyti
 
 ## Develop
 
-Build the released version from the **v1.3.0 tag**, for a reproducible release checkout:
+Build the released version from the **v1.3.2 tag**, for a reproducible release checkout:
 
 ```sh
-git clone --branch v1.3.0 --depth 1 https://github.com/Jelly-RayTian/WatDesk.git
+git clone --branch v1.3.2 --depth 1 https://github.com/Jelly-RayTian/WatDesk.git
 cd WatDesk
 ```
 
@@ -72,19 +72,19 @@ Before packaging, type checking, 221 tests across 48 files and the production bu
 
 发布前通过类型检查、48 个文件中的 221 项测试及生产构建。测试通过不等于所有账号、课程和平台都已实测；反馈时请提供版本及来源状态，不要公开密码或私人课程记录。
 
-## v1.3.2 — PDF schedules and calendar quick add (source / 源码更新)
+## v1.3.2 — PDF schedules and calendar quick add
 
 LEARN Course Schedule PDFs can now be fetched using the existing browser session and parsed locally with bundled Mozilla PDF.js. The current parser recognizes explicit assignment deadlines, numbered Quiz intervals, Midterm intervals and an explicitly undated Final Exam. Tested against the MATH 135 schedule. Scanned PDFs require OCR and are reported as unreadable; unfamiliar layouts, missing dates or ambiguous clock ranges are not guessed. Files are limited to 2 MB and 20 pages. Same-course PDF/Odyssey exams merge only when both exact start and end match, retaining Odyssey room/seat; conflicts stay separate. Other course tool restrictions remain visible.
 
 Double-click a calendar date or blank cell in month/week view to open a personal item with that date filled in. Clicking an existing event opens it; it does not create another item. Keyboard users can still use the selected-day Add item button.
 
-LEARN 的课程日程 PDF 通过现有登录会话读取，在本机解析，不上传到第三方。已用真实 MATH 135 日程核对；无法识别的版式、扫描件或不明确的日期不会猜测。月/周日历可双击日期或空白格新增事项并自动带入日期。上方 v1.3.0 Release 及商店送审包尚不包含本次更新。
+LEARN 的课程日程 PDF 通过现有登录会话读取，在本机解析，不上传到第三方。已用真实 MATH 135 日程核对；无法识别的版式、扫描件或不明确的日期不会猜测。月/周日历可双击日期或空白格新增事项并自动带入日期。 The v1.3.2 GitHub download now includes these fixes; the Edge submission is updated separately.
 
 ## v1.3.1 — session recovery fix (source / 源码更新)
 
-The current main source fixes school SSO redirects that take longer than four seconds: the login helper now waits up to 30 seconds for the original platform to return, with cancellation and a bounded timeout. LEARN also retries a signed-out or no-tab session through its own inactive temporary page, then closes that page after reading or failure. Network errors do not trigger login navigation. Password and MFA prompts still require the user. The downloadable v1.3.0 release and Edge submission above remain separate artifacts until updated.
+The current main source fixes school SSO redirects that take longer than four seconds: the login helper now waits up to 30 seconds for the original platform to return, with cancellation and a bounded timeout. LEARN also retries a signed-out or no-tab session through its own inactive temporary page, then closes that page after reading or failure. Network errors do not trigger login navigation. Password and MFA prompts still require the user. These fixes are included in the v1.3.2 GitHub release. Edge Add-ons certification is handled separately.
 
-当前 main 源码将学校登录跳转等待延长至最多 30 秒，避免在会话自动返回前提前关闭页面；补齐 LEARN 会话恢复的临时后台页流程。读取结束、失败或取消均关闭自己创建的页面，网络故障不触发登录。密码与 MFA 仍由本人完成。上方 v1.3.0 下载包及 Edge 送审包尚不包含这次修复。
+当前 main 源码将学校登录跳转等待延长至最多 30 秒，避免在会话自动返回前提前关闭页面；补齐 LEARN 会话恢复的临时后台页流程。读取结束、失败或取消均关闭自己创建的页面，网络故障不触发登录。密码与 MFA 仍由本人完成。 The v1.3.2 GitHub download now includes these fixes; the Edge submission is updated separately.
 
 ## Earlier development history / 早期开发记录
 
