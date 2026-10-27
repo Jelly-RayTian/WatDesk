@@ -1,14 +1,22 @@
 # WatDesk
 
+**Latest release / 最新发布：[v1.3.0](https://github.com/Jelly-RayTian/WatDesk/releases/tag/v1.3.0)** · [Download ZIP / 下载安装包](https://github.com/Jelly-RayTian/WatDesk/releases/download/v1.3.0/WatDesk-v1.3.0-edge-store.zip) · [Privacy / 隐私政策](https://github.com/Jelly-RayTian/WatDesk/blob/v1.3.0/PRIVACY.md) · [Support / 问题反馈](https://github.com/Jelly-RayTian/WatDesk/issues)
+
+This guide describes v1.3.0. Its source is available at the [v1.3.0 tag](https://github.com/Jelly-RayTian/WatDesk/tree/v1.3.0); the default `main` code branch has not yet incorporated this release. GitHub downloads are available now. Edge Add-ons submission is a separate process; a store installation link will be added when available.
+
+本页说明对应 v1.3.0。默认 `main` 代码尚未合入该版本，下载源码请选上方版本标签。GitHub 安装包已公开，Edge 商店提交与 GitHub 发布分别进行，商店安装链接将在可用后补充。
+
 Independent bilingual academic workspace for University of Waterloo. Edge Manifest V3 extension with a side panel and full-page workspace.
 
 ## Install / 安装
 
-1. Build, or use the delivered `extension` folder.
-2. Open `edge://extensions`, enable Developer mode, choose **Load unpacked / 加载解压缩的扩展**, select that folder.
-3. First launch opens platform setup. Connect Learn, Crowdmark and Odyssey; CS135 and Möbius are optional and disabled until selected. Review imported counts, then enter the workspace. The full-page button is visible in setup; in the side panel, use the top-right More actions menu.
-4. Pin WatDesk. Click its toolbar icon to open the side panel. Use **打开完整面板 / Open full workspace** for the full page.
-5. Installation requests access to the three core sites: Learn, Crowdmark and Odyssey. First opening automatically opens and connects them in parallel. CS135, Möbius and school SSO helper permissions remain optional. Sign in on Learn, Crowdmark and Odyssey themselves, SSO entries are clicked automatically when possible; passwords and verification stay under your control. Sync resumes when you return to the platform. CS135 calendar is public.
+1. Download the v1.3.0 ZIP above and extract it. Open `edge://extensions`, enable **Developer mode**, choose **Load unpacked**, and select the extracted folder containing `manifest.json` directly. / 下载上方 ZIP 并解压，打开扩展管理页，启用开发人员模式，加载直接包含 `manifest.json` 的文件夹。
+2. Pin WatDesk and click its toolbar icon to open the side panel. On first launch, connect LEARN, Crowdmark and Odyssey using your own authorized accounts. Complete passwords and MFA on the original sites. All three enabled core sources must connect before entering the workspace. CS135 and Möbius are optional. / 固定扩展后打开侧栏，首次使用需连接三个核心来源，密码与验证码在原网站输入；CS135 和 Möbius 为可选来源。
+3. Review imported courses, then enter the workspace. Use **More actions → Open full workspace** for the full page. / 核对导入课程后进入工作台，可从“更多操作”打开完整面板。
+
+**Existing users / 已安装用户：** Export a JSON backup in Settings first. Replace files inside the existing unpacked extension folder, then click **Reload** on the WatDesk card in `edge://extensions`. Keep the original extension installed to retain its local data. Refresh inside WatDesk updates data, not extension code. / 先备份，再覆盖原目录并重新加载扩展；不要移除原扩展。面板内刷新只更新数据，不更新代码。
+
+The release includes a SHA-256 file for verifying the ZIP. It contains the same extension package submitted to Edge Add-ons. / 发布页附校验文件，安装包与提交 Edge 商店的包一致。
 
 ## v1.3 workspace
 
@@ -16,9 +24,11 @@ A complete visual redesign uses warm paper surfaces, deep ink navigation and res
 
 ## Features
 
-- Learn deadlines, released grades and explicitly timed calendar exams; Crowdmark deadlines, submission state and historical grades.
+- LEARN deadlines, released grades and calendar/schedule quizzes, including teacher-created Module Quiz reminder events. Online quiz windows also appear in Exams without duplicate reminders; office hours and unrelated reminders are excluded. Crowdmark supplies deadlines, submission state and historical grades.
+- Course-outline items can be added through Settings → My local data → Import items (add only), using `watdesk-items-v1` JSON. These are imported snapshots, not an automatically polled course-outline source; dates without a published time remain date-only.
 - Odyssey assessment dates, duration, room and seat; unpublished times remain unknown.
-- CS135 calendar deadlines (only with the website's explicit 9pm rule), quizzes/midterm, lecture-note and assignment links.
+- CS135 calendar deadlines (only with the website's explicit 9pm rule), quizzes/midterm, lecture-note and assignment links. View Submissions records verify submission by assignment and term; basic-test links alone do not prove submission.
+- Optional Möbius reads metadata from an already-open View Policies/settings page. It never opens an activity, starts a quiz, requests an exception or submits answers. LEARN quiz dates do not require Möbius.
 - Chinese/English, light/dark/system theme; month/week/next-seven-days calendar with course filters, exam markers and date-specific personal items.
 - Personal tasks, checkmarks and notes; conservative cross-platform task merging with source links and an opt-out; platform submission and personal completion remain separate.
 - Term selection, orientation-module hiding and course visibility controls; hidden courses are excluded from coursework views and reminders.
@@ -32,6 +42,13 @@ Checking a task is personal bookkeeping; it does not submit anything to the univ
 Data stays in this extension's local browser storage. No WatDesk server, analytics, password collection, or external font CDN. Source requests go to the corresponding university/Crowdmark service using the browser session. Backups contain your academic data and notes; keep them private. Removing the extension removes its local data: export a backup first.
 
 ## Develop
+
+Build the released version from the **v1.3.0 tag**, rather than the older default branch:
+
+```sh
+git clone --branch v1.3.0 --depth 1 https://github.com/Jelly-RayTian/WatDesk.git
+cd WatDesk
+```
 
 Node 22+ and pnpm: `pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm package`.
 
@@ -48,6 +65,21 @@ GitHub Actions runs type checking, tests and a production build. Its downloadabl
 ## School sign-in helper / 学校登录自动继续
 
 Enable **学校登录自动继续 / School sign-in helper** in Settings and grant the optional `adfs.uwaterloo.ca` permission. On the Waterloo HTTPS ADFS sign-in page, WatDesk clicks Next once if a Waterloo username is already filled. It never fills credentials, reads passwords, or advances password/MFA/error steps. Disable the helper in Settings at any time.
+
+## v1.3.0 release checks / 发布检查
+
+Before packaging, type checking, 221 tests across 48 files and the production build passed. The ZIP manifest is v1.3.0 and its SHA-256 is `66012e37cbaedb54666128cfef4f7b9ba66a9fb49fbdcb21fba6795e0fd3b53a`. Build and fixture checks do not establish authenticated behavior for every account or course. Report platform issues with the installed version and source status, without posting credentials or private academic records.
+
+发布前通过类型检查、48 个文件中的 221 项测试及生产构建。测试通过不等于所有账号、课程和平台都已实测；反馈时请提供版本及来源状态，不要公开密码或私人课程记录。
+
+## Earlier development history / 早期开发记录
+
+The following entries describe behavior at each earlier version. Later changes supersede them; use the installation and sync guidance above for v1.3.0. In particular, v1.3.0 may create inactive temporary tabs and closes its own read tabs after use.
+
+以下是各旧版本当时的行为，并非当前操作说明。后续版本会替代旧行为；v1.3.0 可能创建非活动临时标签页，并在读取结束后关闭自己创建的页面。
+
+<details>
+<summary>Version history: 1.0.2–1.2.3 / 展开旧版本记录</summary>
 
 ## 1.0.2 sync and grade labels
 
@@ -114,3 +146,5 @@ Outline deadlines can be added through Settings → My local data → Import ite
 When Odyssey returns only a sign-in redirect to the worker, retry through an owned inactive browser page using the normal school sign-in entry. Close that page after success, error, cancellation or timeout; never activate a user page. Crowdmark likewise falls back to its rendered course/grade reader when its API session is signed out, rather than failing before the temporary page can run. The school sign-in helper still never reads or enters passwords or verification codes. Cancellation guards prevent late login callbacks from continuing navigation after a job ends.
 
 The progress banner recognizes a source recovered by an individual read, instead of remaining stuck on an old incomplete run. A fresh calendar/schedule merge now updates deadline verification state, avoiding a misleading retained-data label after a successful read.
+
+</details>
