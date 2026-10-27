@@ -27,7 +27,7 @@ export async function readLearnGradeBatch(source:{versions:{le:string};paged:(pa
  return {entries,issues,retry:issues.some(i=>i.kind==='failed')};
 }
 export function learnToolLabel(tool:string,zh:boolean){
- const names:Record<string,[string,string]>={grades:['成绩','Grades'],dropbox:['作业','Assignments'],quizzes:['测验','Quizzes'],discussions:['讨论','Discussions'],myItems:['待办列表','Task feed'],calendar:['日历','Calendar']};
+ const names:Record<string,[string,string]>={grades:['成绩','Grades'],dropbox:['作业','Assignments'],quizzes:['测验','Quizzes'],discussions:['讨论','Discussions'],myItems:['待办列表','Task feed'],calendar:['日历','Calendar'],schedule:['课程日程','Course schedule']};
  return names[tool]?.[zh?0:1]||tool;
 }
 export function formatLearnIssue(issue:LearnReadIssue,zh:boolean){

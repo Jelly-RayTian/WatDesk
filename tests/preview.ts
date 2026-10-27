@@ -38,6 +38,33 @@ if(new URLSearchParams(location.search).has('polish')){
  s.entries=s.entries.map(e=>({...e,verifiedAt:new Date().toISOString(),gradeText:e.scorePercent==null?undefined:`${e.scorePercent/5} / 20`}));
 }
 if(new URLSearchParams(location.search).has('totals')){s.settings.onboardingComplete=true;s.entries.push({id:'preview:total',platform:'crowdmark',course:'MATH 135',title:'Overall Average',type:'task',start:null,end:null,due:null,status:'submitted',scorePercent:90,gradeStatus:'graded',url:'https://app.crowdmark.com/student/courses'});}
+if(new URLSearchParams(location.search).has('mobius')){
+ s.settings.onboardingComplete=true;s.settings.mobiusEnabled=true;s.settings.cs135Enabled=false;s.entries=[];
+ const {parseMobiusSettings}=await import('../src/adapters/mobius');
+ const quiz=parseMobiusSettings({course:'ECON 101 Online - Fall 2026 - 081',title:'Module 6 Quiz',rows:[['Time Limit','20 minutes'],['Date','Start 2026/10/21 EDT 8:00:00 AM End 2026/10/23 EDT 11:00:00 PM']]})!;
+ s.entries=[{...quiz,id:'learn:sample-quiz',platform:'learn',duration:undefined},quiz];
+ s.sources.mobius={status:'ok',at:new Date().toISOString(),count:1};
+}
+if(new URLSearchParams(location.search).has('econquiz')){
+ s.settings.onboardingComplete=true;s.settings.mobiusEnabled=false;
+ s.entries=[{id:'learn:schedule:sample:module-7-quiz',platform:'learn',readerCourseId:'sample',course:'ECON 101',title:'Module 7 Quiz',type:'task',category:'quiz',start:'2026-10-28T12:00:00Z',due:'2026-10-31T03:00:00Z',end:null,status:'open',url:'https://learn.uwaterloo.ca/d2l/home',seenIn:['course-schedule']}];
+}
+// Representative synthetic workspace: never reads the student's actual records.
+const previewParams=new URLSearchParams(location.search);
+if(previewParams.has('showcase')){
+ s=emptyState(previewParams.get('lang')==='en'?'en':'zh-CN');s.settings.onboardingComplete=true;s.settings.theme=previewParams.get('theme')==='dark'?'dark':'light';s.settings.cs135Enabled=true;
+ const now=Date.now(),iso=(days:number,hour=23)=>{const d=new Date(now+days*86400000);d.setHours(hour,0,0,0);return d.toISOString()};
+ const courses=['CS 135','ECON 101','ENGL 119','MATH 135','MATH 137'];
+ s.courses=courses.map((code,i)=>({id:'learn:'+i,code,name:['Designing Functional Programs','Introduction to Microeconomics','Communications in Mathematics','Algebra','Calculus 1'][i],term:'Fall 2026'}));
+ s.entries=Array.from({length:15},(_,i)=>({id:'showcase:'+i,platform:i%3===0?'crowdmark' as const:'learn' as const,course:courses[i%5],title:['Assignment 05 — Generative recursion','Module 7 Quiz','Vlog — Communicating technical ideas / 技术沟通反思','Assignment 07 — Linear equations','Problem Set 08'][i%5],type:'task' as const,category:i%5===1?'quiz' as const:'assignment' as const,due:iso(i),start:i%5===1?iso(i-2,8):null,end:null,status:'open' as const,url:'https://learn.uwaterloo.ca/d2l/home',verifiedAt:new Date(now).toISOString()}));
+ s.entries.push({id:'showcase:exam',platform:'odyssey',course:'MATH 137',title:'Midterm examination',type:'exam',start:iso(0,19),end:iso(0,21),due:null,status:'open',location:'RCH 302',seat:'B12',url:'https://odyssey.uwaterloo.ca/teaching/schedule'});
+ s.entries.push({id:'showcase:date',platform:'manual',course:'ENGL 119',title:'Proposal test — date announced, exact time pending',type:'task',dateOnly:iso(8).slice(0,10),due:iso(8),start:null,end:null,status:'open',url:'https://outline.uwaterloo.ca/viewer/view/nbyw37',seenIn:['course-outline']});
+ s.entries.push(...Array.from({length:8},(_,i)=>({id:'showcase:grade:'+i,platform:'crowdmark' as const,course:i<4?'MATH 135':'MATH 137',title:i===1?'Assignment 02 — Long title with matrix computations and detailed written explanations':'Assignment 0'+(i%4+1),type:'task' as const,due:iso(-24+i*2),start:null,end:null,status:'submitted' as const,scorePercent:i===7?undefined:[85,92,88,96,81,87,93][i],gradeText:i===7?undefined:'18 / 20',gradeStatus:i===7?'submitted' as const:'graded' as const,url:'https://app.crowdmark.com/student/courses',verifiedAt:new Date(now).toISOString()})));
+ for(const platform of ['learn','crowdmark','odyssey','cs135'] as const)s.sources[platform]={status:'ok',at:new Date(now).toISOString(),durationMs:1800};
+ s.sources.learn.issues=[{course:'ENGL 119',tool:'grades',kind:'unavailable',code:'forbidden',status:403}];
+}
+if(previewParams.get('lang')==='en')s.settings.locale='en';
+if(previewParams.get('theme')==='dark')s.settings.theme='dark';
 // Opt-in observation of the native animation during local visual checks.
 if(new URLSearchParams(location.search).has('motioncheck')){
  const nativeAnimate=Element.prototype.animate;

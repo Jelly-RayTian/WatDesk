@@ -3,3 +3,5 @@ dist/
 .superpowers/
 test-results/
 *.local
+ui-review.html
+review-matrix.html

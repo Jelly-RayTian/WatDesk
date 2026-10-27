@@ -1,7 +1,14 @@
+import {cs135SubmissionsUrl} from './cs135-submissions';
 import {origins,urls,type Platform} from '../domain';
 export type SourcePlatform=Exclude<Platform,'manual'>;
 const remembered=new Map<SourcePlatform,number>();
 const opening=new Map<SourcePlatform,Promise<number>>();
+// Passive sync may only read a page the user already has loaded. Never revive,
+// create, activate or navigate a tab from this path.
+export async function existingSourceTab(p:SourcePlatform):Promise<number|undefined>{
+ const tabs=await chrome.tabs.query({url:p==='cs135'?'https://student.cs.uwaterloo.ca/~cs135/*':origins[p]});
+ return tabs.find(tab=>tab.id!=null&&!tab.discarded&&!tab.frozen&&tab.status==='complete')?.id;
+}
 // A tab can disappear after acquisition, while a page or a grade table loads.
 // Only retry that lifecycle error; permission, sign-in and network errors propagate.
 export async function withSourceTab<T>(p:SourcePlatform,read:(id:number)=>Promise<T>,preferredId?:number):Promise<T>{
@@ -12,17 +19,19 @@ export async function withSourceTab<T>(p:SourcePlatform,read:(id:number)=>Promis
 }
 // A single tab acquisition per source, shared by sync and the Open button.
 export async function sourceTab(p:SourcePlatform,activate=false):Promise<number>{
+ if(p==='mobius'){const id=await existingSourceTab(p);if(id==null)throw Error('mobius-settings-required');if(activate)await chrome.tabs.update(id,{active:true});return id}
+ const landing=p==='cs135'?cs135SubmissionsUrl:urls[p];
  let job=opening.get(p);
  if(!job){job=(async()=>{
   const tabs=await chrome.tabs.query({url:p==='cs135'?'https://student.cs.uwaterloo.ca/~cs135/*':origins[p]});
-  tabs.sort((a,b)=>Number(b.url?.startsWith(urls[p]))-Number(a.url?.startsWith(urls[p]))||Number(b.active)-Number(a.active));
+  tabs.sort((a,b)=>Number(b.url?.startsWith(landing))-Number(a.url?.startsWith(landing))||Number(b.active)-Number(a.active));
   const previous=remembered.get(p);
   const tab=tabs[0]||(previous?await chrome.tabs.get(previous).catch(()=>undefined):undefined);
-  if(tab?.id){remembered.set(p,tab.id);if(tab.discarded)await chrome.tabs.reload(tab.id);return tab.id}
-  const created=await chrome.tabs.create({url:urls[p],active:false});
+  if(tab?.id){remembered.set(p,tab.id);if(tab.discarded)await chrome.tabs.reload(tab.id);else if(tab.frozen)await chrome.tabs.update(tab.id,{active:true});return tab.id}
+  const created=await chrome.tabs.create({url:landing,active:false});
   if(!created.id)throw Error('needs-page');remembered.set(p,created.id);return created.id;
  })().finally(()=>opening.delete(p));opening.set(p,job)}
  const id=await job;
- if(activate){const tab=await chrome.tabs.get(id);await chrome.tabs.update(id,{active:true,...(tab.url!==urls[p]?{url:urls[p]}:{})});if(tab.windowId!=null)await chrome.windows.update(tab.windowId,{focused:true})}
+ if(activate){const tab=await chrome.tabs.get(id);await chrome.tabs.update(id,{active:true,...(tab.url!==landing?{url:landing}:{})});if(tab.windowId!=null)await chrome.windows.update(tab.windowId,{focused:true})}
  return id;
 }
