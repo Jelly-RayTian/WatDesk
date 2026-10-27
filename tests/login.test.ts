@@ -36,3 +36,20 @@ it('waits across SSO redirects before considering the platform ready and shares 
 it('stops with a clear sign-in-required error when human verification is needed',async()=>{
  vi.stubGlobal('chrome',{tabs:{get:async()=>({status:'complete'})},scripting:{executeScript:async()=>[{result:'manual-login'}]}});try{await expect(autoLogin('learn',91)).rejects.toThrow('sign-in-required')}finally{vi.unstubAllGlobals()}
 });
+
+it('allows a school redirect to return after more than four seconds without manual login',async()=>{
+ vi.useFakeTimers();const started=Date.now();
+ const execute=vi.fn(async()=>{if(Date.now()-started<10000)throw Error('Cannot access contents of school SSO URL');return [{result:'ready'}]});
+ vi.stubGlobal('chrome',{tabs:{get:async()=>({status:'complete'})},scripting:{executeScript:execute}});
+ try{const result=autoLogin('odyssey',101).then(()=> 'ready',e=>e.message);await vi.advanceTimersByTimeAsync(11000);expect(await result).toBe('ready')}finally{vi.useRealTimers();vi.unstubAllGlobals()}
+});
+it('bounds school redirect waits and stops when the read is cancelled',async()=>{
+ vi.useFakeTimers();const execute=vi.fn().mockRejectedValue(Error('Cannot access school SSO URL'));let cancelled=false;
+ vi.stubGlobal('chrome',{tabs:{get:async()=>({status:'complete'})},scripting:{executeScript:execute}});
+ try{const result=autoLogin('odyssey',102,()=>{if(cancelled)throw Error('sync-cancelled')}).then(()=> 'ready',e=>e.message);await vi.advanceTimersByTimeAsync(1000);cancelled=true;await vi.advanceTimersByTimeAsync(1000);expect(await result).toBe('sync-cancelled');const count=execute.mock.calls.length;await vi.advanceTimersByTimeAsync(40000);expect(execute).toHaveBeenCalledTimes(count)}finally{vi.useRealTimers();vi.unstubAllGlobals()}
+});
+
+it('eventually reports sign-in-required when school SSO never returns',async()=>{
+ vi.useFakeTimers();vi.stubGlobal('chrome',{tabs:{get:async()=>({status:'complete'})},scripting:{executeScript:async()=>{throw Error('SSO access unavailable')}}});
+ try{const result=autoLogin('odyssey',103).then(()=> 'ready',e=>e.message);await vi.advanceTimersByTimeAsync(31000);expect(await result).toBe('sign-in-required')}finally{vi.useRealTimers();vi.unstubAllGlobals()}
+});

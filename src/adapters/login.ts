@@ -29,13 +29,13 @@ export function autoLogin(p:SourcePlatform,tabId:number,check:()=>void=()=>{}):P
  if(p==='cs135'||p==='mobius')return Promise.resolve();
  const existing=jobs.get(tabId);if(existing)return existing;
  const job=(async()=>{
-  let clickedAt='';let outside=0;
-  for(let n=0;n<24;n++){
+  let clickedAt='';const deadline=Date.now()+30000;
+  for(let n=0;n<60&&Date.now()<deadline;n++){
    check();await waitForTab(tabId);check();
    let action:string|undefined;
    try{const [result]=await retryFrame(()=>chrome.scripting.executeScript({target:{tabId},func:clickPlatformLogin,args:[p]}),()=>waitForTab(tabId));action=result?.result}catch{
     // A school SSO redirect is outside our host permissions. Wait for it to return.
-    if(++outside>=8)throw Error('sign-in-required');await new Promise(r=>setTimeout(r,500));continue;
+    check();await new Promise(r=>setTimeout(r,500));continue;
    }
    check();if(action==='ready')return;
    if(action==='manual-login')throw Error('sign-in-required');
@@ -44,7 +44,6 @@ export function autoLogin(p:SourcePlatform,tabId:number,check:()=>void=()=>{}):P
     const url=(await chrome.tabs.get(tabId)).url||'';
     if(clickedAt===url)throw Error('sign-in-required');clickedAt=url;
    }
-   if(action==='outside-platform'&&++outside>=8)throw Error('sign-in-required');
    await new Promise(r=>setTimeout(r,500));
   }
   throw Error('sign-in-required');

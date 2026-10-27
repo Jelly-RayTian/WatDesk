@@ -1,6 +1,8 @@
 import {platforms,urls,origins,type Platform,type AppState,type Course,type Entry,type LearnReadIssue} from '../domain';
 import {enrichCs135Submissions,readCs135Submissions} from './cs135-submissions';
 import {readOdyssey} from './odyssey';
+import {withTemporaryTab} from './temporary-tab';
+import {autoLogin} from './login';
 import {readMobius} from './mobius';
 import {readLearnSchedule} from './learn-schedule';
 import {parseOdyssey,parseCs135Html} from './parsers';
@@ -24,7 +26,16 @@ export async function relay(p:ReaderPlatform,path:string,tabId?:number){
  if(!((p==='learn'&&path.startsWith('/d2l/'))||(p==='crowdmark'&&path.startsWith('/api/v2/student/')))||path.startsWith('//'))throw Error('path');
  const id=tabId??await existingSourceTab(p);if(id==null)return {noTab:true};const tab=await chrome.tabs.get(id);if(tab.frozen||tab.discarded||tab.status!=='complete')return {noTab:true};const [result]=await withTimeout(retryFrame(()=>chrome.scripting.executeScript({target:{tabId:id},func:async(path:string)=>{try{const res=await fetch(path,{credentials:'include',signal:AbortSignal.timeout(20000)});const type=res.headers.get('content-type')||'';let json;let body='';let parseError;try{const text=await res.text();if(type.includes('json'))json=JSON.parse(text);else body=text.slice(0,16000)}catch(e){parseError=String(e)}return {status:res.status,type,json,body,parseError,redirected:res.redirected,loginRedirect:!res.url.startsWith(location.origin+'/d2l/')&&path.startsWith('/d2l/')}}catch(e){return {status:0,error:String(e)}}},args:[path]}),()=>waitForTab(id)),22000);return result?.result;
 }
-export async function readPlatform(p:ReaderPlatform,state:AppState,forceGrades=false,existingTabId?:number,signal?:AbortSignal):Promise<{entries:Entry[];courses:Course[];identity?:string;warning?:string;gradesAt?:string;issues?:LearnReadIssue[];courseReadAt?:Record<string,string>}>{
+export async function readPlatform(...args:Parameters<typeof readPlatformOnce>):ReturnType<typeof readPlatformOnce>{
+ try{return await readPlatformOnce(...args)}catch(e){
+  if(args[0]!=='learn'||! /^(signed-out|no-tab|session-unreadable|sign-in-required)$/.test(e instanceof Error?e.message:String(e)))throw e;
+ }
+ return withTemporaryTab(urls.learn,async page=>{
+  await autoLogin('learn',page.id,page.check);page.check();
+  const result=await readPlatformOnce('learn',args[1],args[2],page.id,args[4]);page.check();return result;
+ },{signal:args[4],timeout:60000});
+}
+async function readPlatformOnce(p:ReaderPlatform,state:AppState,forceGrades=false,existingTabId?:number,signal?:AbortSignal):Promise<{entries:Entry[];courses:Course[];identity?:string;warning?:string;gradesAt?:string;issues?:LearnReadIssue[];courseReadAt?:Record<string,string>}>{
  if(!platforms.includes(p))throw Error('platform');if(!(await chrome.permissions.contains({origins:[origins[p]]})))throw Error('permission');
  if(p==='mobius')return readMobius(state);
  if(p==='learn'){

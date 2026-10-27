@@ -39,7 +39,7 @@ it('passive reads save data and check grades without login or disturbing user ta
  readers.read.mockImplementation(async(p:string)=>({entries:p==='learn'?[fresh]:[],courses:[]}));
  ctx.alarm();await ctx.settle();expect(ctx.state().entries).toContainEqual(expect.objectContaining({title:'New assignment'}));
  expect(readers.login).not.toHaveBeenCalled();expect(readers.grades).toHaveBeenCalledWith(expect.anything(),expect.objectContaining({temporary:true}));expect(ctx.effects.update).not.toHaveBeenCalled();expect(ctx.effects.create).not.toHaveBeenCalled();
- expect(readers.read).toHaveBeenCalledWith('learn',expect.anything(),false,1);
+ expect(readers.read).toHaveBeenCalledWith('learn',expect.anything(),false,1,expect.any(AbortSignal));
 });
 it('an expired session during passive refresh keeps previous data without navigating to sign-in',async()=>{
  const ctx=await setup([{id:1,url:'https://learn.uwaterloo.ca/d2l/home',status:'complete'}]);ctx.state().sources.learn={status:'ok',at:'2026-10-10T12:00:00Z'};

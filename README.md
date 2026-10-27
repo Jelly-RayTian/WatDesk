@@ -72,6 +72,12 @@ Before packaging, type checking, 221 tests across 48 files and the production bu
 
 发布前通过类型检查、48 个文件中的 221 项测试及生产构建。测试通过不等于所有账号、课程和平台都已实测；反馈时请提供版本及来源状态，不要公开密码或私人课程记录。
 
+## v1.3.1 — session recovery fix (source / 源码更新)
+
+The current main source fixes school SSO redirects that take longer than four seconds: the login helper now waits up to 30 seconds for the original platform to return, with cancellation and a bounded timeout. LEARN also retries a signed-out or no-tab session through its own inactive temporary page, then closes that page after reading or failure. Network errors do not trigger login navigation. Password and MFA prompts still require the user. The downloadable v1.3.0 release and Edge submission above remain separate artifacts until updated.
+
+当前 main 源码将学校登录跳转等待延长至最多 30 秒，避免在会话自动返回前提前关闭页面；补齐 LEARN 会话恢复的临时后台页流程。读取结束、失败或取消均关闭自己创建的页面，网络故障不触发登录。密码与 MFA 仍由本人完成。上方 v1.3.0 下载包及 Edge 送审包尚不包含这次修复。
+
 ## Earlier development history / 早期开发记录
 
 The following entries describe behavior at each earlier version. Later changes supersede them; use the installation and sync guidance above for v1.3.0. In particular, v1.3.0 may create inactive temporary tabs and closes its own read tabs after use.

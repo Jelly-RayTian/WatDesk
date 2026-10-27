@@ -61,7 +61,7 @@ async function runSync(p:Exclude<Platform,'manual'>,forceGrades:boolean,interact
    if(!current())throw Error('sync-cancelled');
    await mutateState(s=>current()?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:'tasks'}}}:s);
    let result:Awaited<ReturnType<typeof readPlatform>>;
-   try{result=p==='odyssey'?await readPlatform(p,await loadState(),forceGrades,tabId,controller.signal):await readPlatform(p,await loadState(),forceGrades,tabId)}
+   try{result=(p==='odyssey'||p==='learn')?await readPlatform(p,await loadState(),forceGrades,tabId,controller.signal):await readPlatform(p,await loadState(),forceGrades,tabId)}
    catch(e){
     if(p!=='crowdmark'||!/signed.out|sign.in|session.unreadable|401|403/i.test(e instanceof Error?e.message:String(e)))throw e;
     await mutateState(s=>current()?{...s,sources:{...s.sources,[p]:{...s.sources[p],phase:'page'}}}:s);
@@ -83,7 +83,7 @@ async function runSync(p:Exclude<Platform,'manual'>,forceGrades:boolean,interact
     }catch(e){if(e instanceof Error&&e.message==='identityChanged')throw e;result.warning='crowdmark-grades-unavailable: '+(e instanceof Error?e.message:String(e))}
    }
    return result;
-  })(),p==='crowdmark'||interactive?180000:p==='odyssey'?90000:45000);
+  })(),p==='crowdmark'||interactive?180000:p==='odyssey'||p==='learn'?90000:45000);
   await mutateState(s=>current()?applySnapshot(s,p,result.entries,result.courses,{status:'ok',at:new Date().toISOString(),count:result.entries.length,identity:result.identity,error:result.warning,...(p==='crowdmark'?{gradesAt:result.gradesAt}:{}),...(p==='learn'?{scheduleVersion:1,gradesAt:result.gradesAt,issues:result.issues,courseReadAt:result.courseReadAt}:{})}):s);
 
  }catch(e){await mutateState(s=>current()?({...s,sources:{...s.sources,[p]:{...s.sources[p],phase:undefined,status:'error',error:e instanceof Error?e.message:String(e),durationMs:Date.now()-started}}}):s);cancelled=true}

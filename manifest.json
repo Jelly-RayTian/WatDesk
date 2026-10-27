@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "WatDesk",
   "description": "Your Waterloo coursework and exam workspace. 中英文滑铁卢学业与考试工作台。",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "minimum_chrome_version": "120",
   "permissions": [
     "storage",
