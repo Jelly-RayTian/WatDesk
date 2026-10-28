@@ -1,3 +1,4 @@
+import {safeUrl,linkUrl} from './urls';
 import {meetingEntries,meetingForEntry} from './academic';
 import {personallyDone,personalNote} from './organization';
 import {visibleEntries} from './state';
@@ -24,8 +25,7 @@ export function planReminders(s:AppState,now:string){
  }
  return out;
 }
-export function safeUrl(url:string){if(/[\x00-\x1f\x7f]/.test(url))return false;try{const u=new URL(url);return u.protocol==='https:'&&['learn.uwaterloo.ca','app.crowdmark.com','odyssey.uwaterloo.ca','student.cs.uwaterloo.ca','outline.uwaterloo.ca'].includes(u.hostname)}catch{return url===''}}
-export function linkUrl(url:string){if(/[\x00-\x1f\x7f]/.test(url))return false;if(url==='')return true;try{const p=new URL(url).protocol;return p==='https:'||p==='http:'}catch{return false}}
+export {safeUrl,linkUrl} from './urls';
 const esc=(s:string)=>s.replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r/g,'');
 function fold(line:string){let bytes=0,out='';for(const c of line){const n=new TextEncoder().encode(c).length;if(bytes+n>75){out+='\r\n ';bytes=1}out+=c;bytes+=n}return out}
 export function exportIcs(s:AppState){const utc=(v:string)=>new Date(v).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z');const now=utc(new Date().toISOString());const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//WatDesk//Academic Workspace//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:WatDesk'];
@@ -33,9 +33,11 @@ export function exportIcs(s:AppState){const utc=(v:string)=>new Date(v).toISOStr
 export function validateBackup(text:string):AppState{
  if(new TextEncoder().encode(text).length>10*1024*1024)throw Error('restoreError');const s=JSON.parse(text);
  if(s.schemaVersion!==1||!s.settings||!['en','zh-CN'].includes(s.settings.locale)||!['system','light','dark'].includes(s.settings.theme)||!Array.isArray(s.entries)||!Array.isArray(s.courses)||!s.sources||!s.overlays||!s.sent||!Array.isArray(s.changes))throw Error('restoreError');
+ if(typeof s.settings.zone!=='string')throw Error('restoreError');
  new Intl.DateTimeFormat('en',{timeZone:s.settings.zone});
  if(!Number.isFinite(s.settings.taskLead)||s.settings.taskLead<0||s.settings.taskLead>525600||!Array.isArray(s.settings.examLeads)||s.settings.examLeads.some((v:unknown)=>typeof v!=='number'||!Number.isFinite(v)||v<0||v>525600)||!Array.isArray(s.settings.mutedCourses))throw Error('restoreError');
  for(const e of s.entries){if(typeof e.id!=='string'||typeof e.title!=='string'||typeof e.course!=='string'||!['learn','crowdmark','odyssey','cs135','mobius','manual'].includes(e.platform)||!['exam','task'].includes(e.type)||!['open','submitted'].includes(e.status)||typeof e.url!=='string'||!(e.platform==='manual'?safeUrl(e.url):linkUrl(e.url)))throw Error('restoreError');for(const k of ['start','end','due'])if(e[k]!==null&&(typeof e[k]!=='string'||!Number.isFinite(Date.parse(e[k]))))throw Error('restoreError')}
+ if(s.settings.visualVersion!==undefined&&(!Number.isInteger(s.settings.visualVersion)||s.settings.visualVersion<0))throw Error('restoreError');
  if(s.settings.activeTerm!==undefined&&(typeof s.settings.activeTerm!=='string'||s.settings.activeTerm.length>100))throw Error('restoreError');
  if(s.settings.classMeetings!==undefined&&(!Array.isArray(s.settings.classMeetings)||s.settings.classMeetings.length>100||s.settings.classMeetings.some((m:any)=>!m||['id','course','title','start','end','location'].some(k=>typeof m[k]!=='string')||!m.id||m.id.length>100||!Number.isInteger(m.weekday)||m.weekday<0||m.weekday>6||!/^([01]\d|2[0-3]):[0-5]\d$/.test(m.start)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(m.end)||m.end<=m.start||!Number.isFinite(m.leadMinutes)||m.leadMinutes<0||m.leadMinutes>1440||typeof m.enabled!=='boolean')))throw Error('restoreError');
  if(s.settings.classMeetings&&new Set(s.settings.classMeetings.map((m:any)=>m.id)).size!==s.settings.classMeetings.length)throw Error('restoreError');
@@ -65,9 +67,7 @@ export function validateBackup(text:string):AppState{
  for(const v of Object.values(s.sent))if(typeof v!=='string')throw Error('restoreError');
  const validDate=(v:unknown)=>typeof v==='string'&&Number.isFinite(Date.parse(v));
  for(const e of s.entries){if(e.submissionState!==undefined&&!['submitted','not-found','unknown'].includes(e.submissionState)||e.submittedAt!==undefined&&!validDate(e.submittedAt)||e.submissionCheckedAt!==undefined&&!validDate(e.submissionCheckedAt))throw Error('restoreError')}
- for(const e of s.entries)if(e.gradeKind!==undefined&&!['assessment','overall','average','class-average'].includes(e.gradeKind))throw Error('restoreError');
  for(const st of Object.values(s.sources) as any[])if(st.issues!==undefined&&(!Array.isArray(st.issues)||st.issues.some((i:any)=>!record(i)||typeof i.course!=='string'||typeof i.tool!=='string'||typeof i.code!=='string'||!['unavailable','failed'].includes(i.kind)||i.status!==undefined&&(!Number.isInteger(i.status)||i.status<0||i.status>599))))throw Error('restoreError');
- for(const e of s.entries)if(e.gradeKind!==undefined&&!['assessment','overall','average','class-average'].includes(e.gradeKind))throw Error('restoreError');
  for(const st of Object.values(s.sources) as any[])if(st.at!==undefined&&!validDate(st.at))throw Error('restoreError');
  for(const c of s.changes)if(!validDate(c.at))throw Error('restoreError');
  for(const e of s.entries)if(e.gradeVerifiedAt!==undefined&&!validDate(e.gradeVerifiedAt)||e.gradeReadState!==undefined&&!['fresh','retained'].includes(e.gradeReadState))throw Error('restoreError');

@@ -10,9 +10,13 @@ export async function ensureCrowdmarkBridge(){
  const tabs=await chrome.tabs.query({url:matches});
  for(const tab of tabs){if(!tab.id||tab.discarded||tab.frozen||tab.status!=='complete')continue;try{await withTimeout(chrome.scripting.executeScript({target:{tabId:tab.id},files:[file]}),5000)}catch{/* Navigating tabs get the registered bridge at document_end. */}}
 }
-export async function crowdmarkRelay(path:string){
+export function crowdmarkApiUrl(path:string){
  let url:URL;try{url=new URL(path,'https://app.crowdmark.com')}catch{throw Error('path')}
  if(url.origin!=='https://app.crowdmark.com'||!url.pathname.startsWith('/api/v2/student/'))throw Error('path');
+ return url;
+}
+export async function crowdmarkRelay(path:string){
+ const url=crowdmarkApiUrl(path);
  let tabs:chrome.tabs.Tab[];try{tabs=await chrome.tabs.query({url:matches})}catch{return {noTab:true}}
  tabs.sort((a,b)=>Number(b.active)-Number(a.active)||(b.lastAccessed||0)-(a.lastAccessed||0));
  for(const tab of tabs){if(!tab.id||tab.discarded||tab.frozen||tab.status!=='complete')continue;try{const res=await withTimeout(chrome.tabs.sendMessage(tab.id,{type:'crowdmark:fetch',path:url.pathname+url.search}),22000);if(res)return res}catch{/* Try another already-open tab. */}}

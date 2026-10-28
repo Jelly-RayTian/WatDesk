@@ -17,3 +17,5 @@ Figtree font: Copyright 2022 The Figtree Project Authors. SIL Open Font License 
 ## PDF.js
 
 PDF text extraction uses Mozilla PDF.js (`pdfjs-dist` 6.4.299), licensed under Apache-2.0. The library and matching worker are bundled locally; the package includes `PDFjs-LICENSE.txt`. Source: https://github.com/mozilla/pdf.js .
+
+WatDesk's packaged Crowdmark bridge (`src/content/crowdmark-bridge.js`) adapts the MIT-licensed upstream bridge to validate normalized URL paths before fetching. The original vendored file remains unchanged.
