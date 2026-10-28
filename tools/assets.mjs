@@ -1,7 +1,7 @@
 import {copyFile,mkdir,cp} from 'node:fs/promises';
 import {deflateSync} from 'node:zlib';
 await mkdir('dist',{recursive:true});
-await copyFile('src/vendor/watnow/content/crowdmark-bridge.js','dist/crowdmark-bridge.js');
+await copyFile('src/content/crowdmark-bridge.js','dist/crowdmark-bridge.js');
 await copyFile('src/content/school-login.js','dist/school-login.js');
 await copyFile('node_modules/pdfjs-dist/legacy/build/pdf.worker.min.mjs','dist/pdf.worker.mjs');
 await cp('node_modules/pdfjs-dist/standard_fonts','dist/standard_fonts',{recursive:true});

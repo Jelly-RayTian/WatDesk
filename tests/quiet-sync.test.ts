@@ -16,7 +16,7 @@ async function setup(tabs:any[]=[],onboardingComplete=true){
   tabs:{query:async({url}:any)=>tabs.filter(t=>t.url.startsWith(url.replace('*',''))),get:async(id:number)=>{const tab=tabs.find(t=>t.id===id);if(!tab&&id!==99)throw Error('No tab with id');return tab||{id:99,status:'complete'}},create:effects.create,update:effects.update,reload:effects.reload,onUpdated:{addListener:(fn:any)=>{updated=fn}}},
   windows:{update:effects.focus},permissions:{contains:async()=>true},notifications:{create:async()=>''},
   runtime:{id:'test',onMessage:{addListener:(fn:any)=>{message=fn}},onInstalled:{addListener:()=>{}},onStartup:{addListener:()=>{}}},
-  alarms:{onAlarm:{addListener:(fn:any)=>{alarm=fn}}}
+  alarms:{get:async()=>({periodInMinutes:360}),create:async()=>{},clear:async()=>true,onAlarm:{addListener:(fn:any)=>{alarm=fn}}}
  });
  await import('../src/background/worker');
  const send=(type:string,extra:object={})=>new Promise<any>(resolve=>message({type,...extra},{id:'test'},resolve));
@@ -101,3 +101,12 @@ it('scheduled sync still runs when the last result is just under six hours old',
 it('manual-only mode suppresses automatic reads but allows Refresh',async()=>{const ctx=await setup();ctx.state().settings.syncIntervalMinutes=0;ctx.alarm();await ctx.settle();expect(readers.read).not.toHaveBeenCalled();await ctx.send('refreshOnOpen',{force:true});await vi.waitFor(()=>expect(readers.read).toHaveBeenCalledTimes(3));expect(ctx.effects.create).not.toHaveBeenCalled()});
 it('checks Crowdmark grades automatically in a temporary page and merges the verified score',async()=>{const ctx=await setup();const entry:Entry={id:'crowdmark:a1',platform:'crowdmark',course:'MATH 135',title:'A01',type:'task',start:null,end:null,due:'2026-10-27T01:00:00Z',status:'submitted',url:'https://app.crowdmark.com/student/assessments/a1'};readers.read.mockImplementation(async(p:string)=>({entries:p==='crowdmark'?[entry]:[],courses:[]}));readers.grades.mockResolvedValue({entries:[{...entry,scorePercent:90,gradeStatus:'graded'}],courses:[]});ctx.alarm();await ctx.settle();expect(readers.grades).toHaveBeenCalledWith(expect.anything(),expect.objectContaining({temporary:true,signal:expect.any(AbortSignal)}));expect(ctx.state().entries.find(e=>e.id===entry.id)).toMatchObject({scorePercent:90,gradeReadState:'fresh',due:entry.due});expect(ctx.effects.focus).not.toHaveBeenCalled()});
 it('uses a temporary rendered Crowdmark read when the API session needs its normal sign-in redirect',async()=>{const ctx=await setup();readers.read.mockImplementation(async(p:string)=>{if(p==='crowdmark')throw Error('signed-out');return {entries:[],courses:[]}});readers.grades.mockResolvedValue({entries:[],courses:[],identity:'student'});ctx.alarm();await ctx.settle();expect(readers.grades).toHaveBeenCalledWith(expect.anything(),expect.objectContaining({temporary:true,signIn:true}));expect(ctx.state().sources.crowdmark.status).toBe('ok');expect(ctx.effects.focus).not.toHaveBeenCalled()});
+
+it('rejects malformed patches without poisoning settings or notes, and still permits unlinking',async()=>{
+ const ctx=await setup();const entry:Entry={id:'learn:test',platform:'learn',course:'CS 135',title:'Assignment',type:'task',start:null,end:null,due:null,status:'open',url:''};
+ ctx.state().entries=[entry];ctx.state().overlays[entry.id]={note:'keep',linkedTo:'learn:other'};
+ expect(await ctx.send('overlay',{id:entry.id,patch:{note:{bad:true}}})).toMatchObject({ok:false});expect(ctx.state().overlays[entry.id].note).toBe('keep');
+ expect(await ctx.send('settings',{patch:{taskLead:NaN}})).toMatchObject({ok:false});
+ expect(await ctx.send('settings',{patch:{palette:'ocean',extraKey:true}})).toMatchObject({ok:true});expect(ctx.state().settings.palette).toBe('ocean');expect(ctx.state().settings).not.toHaveProperty('extraKey');
+ expect(await ctx.send('overlay',{ids:[entry.id,'missing'],patch:{linkedTo:null,done:true}})).toMatchObject({ok:true});expect(ctx.state().overlays[entry.id]).toMatchObject({done:true,note:'keep'});expect(ctx.state().overlays[entry.id].linkedTo).toBeUndefined();expect(ctx.state().overlays).not.toHaveProperty('missing');
+});
