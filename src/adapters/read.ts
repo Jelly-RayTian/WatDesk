@@ -1,3 +1,4 @@
+import {crowdmarkApiUrl} from './crowdmark-bridge';
 import {platforms,urls,origins,type Platform,type AppState,type Course,type Entry,type LearnReadIssue} from '../domain';
 import {enrichCs135Submissions,readCs135Submissions} from './cs135-submissions';
 import {readOdyssey} from './odyssey';
@@ -23,6 +24,7 @@ import {courseVisible} from '../core/academic';
 import {learnIssue,toolIssues,readLearnGradeBatch} from './learn-availability';
 type ReaderPlatform=Exclude<Platform,'manual'>;
 export async function relay(p:ReaderPlatform,path:string,tabId?:number){
+ if(p==='crowdmark'){const url=crowdmarkApiUrl(path);path=url.pathname+url.search}
  if(!((p==='learn'&&path.startsWith('/d2l/'))||(p==='crowdmark'&&path.startsWith('/api/v2/student/')))||path.startsWith('//'))throw Error('path');
  const id=tabId??await existingSourceTab(p);if(id==null)return {noTab:true};const tab=await chrome.tabs.get(id);if(tab.frozen||tab.discarded||tab.status!=='complete')return {noTab:true};const [result]=await withTimeout(retryFrame(()=>chrome.scripting.executeScript({target:{tabId:id},func:async(path:string)=>{try{const res=await fetch(path,{credentials:'include',signal:AbortSignal.timeout(20000)});const type=res.headers.get('content-type')||'';let json;let body='';let parseError;try{const text=await res.text();if(type.includes('json'))json=JSON.parse(text);else body=text.slice(0,16000)}catch(e){parseError=String(e)}return {status:res.status,type,json,body,parseError,redirected:res.redirected,loginRedirect:!res.url.startsWith(location.origin+'/d2l/')&&path.startsWith('/d2l/')}}catch(e){return {status:0,error:String(e)}}},args:[path]}),()=>waitForTab(id)),22000);return result?.result;
 }

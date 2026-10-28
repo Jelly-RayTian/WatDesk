@@ -1,0 +1,2 @@
+export function safeUrl(url:string){if(/[\x00-\x1f\x7f]/.test(url))return false;try{const u=new URL(url);return u.protocol==='https:'&&['learn.uwaterloo.ca','app.crowdmark.com','odyssey.uwaterloo.ca','student.cs.uwaterloo.ca','outline.uwaterloo.ca'].includes(u.hostname)}catch{return url===''}}
+export function linkUrl(url:string){if(/[\x00-\x1f\x7f]/.test(url))return false;if(url==='')return true;try{const p=new URL(url).protocol;return p==='https:'||p==='http:'}catch{return false}}

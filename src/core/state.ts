@@ -1,6 +1,6 @@
 import {courseVisible} from './academic';
 import {mergeTasks,mergeScheduleExams,courseKey} from './organization';
-import {linkUrl} from './util';
+import {linkUrl} from './urls';
 import {emptyState,type AppState,type Platform,type Course,type Entry,type SyncStatus} from '../domain';
 export function applySnapshot(state:AppState,platform:Platform,entries:Entry[],courses:Course[],status:SyncStatus):AppState{
  const s=structuredClone(state); const old=s.sources[platform];
@@ -13,7 +13,7 @@ export function applySnapshot(state:AppState,platform:Platform,entries:Entry[],c
  s.entries=sanitizeUrls(s.entries);s.courses=[...new Map([...s.courses,...courses].map(c=>[c.id,c])).values()];s.changes=s.changes.slice(0,100);return s;
 }
 // Course resources can live on any site; drop only links that are not plain web links so saves still validate.
-export function sanitizeUrls(entries:Entry[]):Entry[]{return entries.map(e=>typeof e.url==='string'&&linkUrl(e.url)?e:{...e,url:''})}
+export function sanitizeUrls(entries:Entry[]):Entry[]{return entries.map(e=>e.platform==='manual'||typeof e.url==='string'&&linkUrl(e.url)?e:{...e,url:''})}
 export function visibleEntries(s:AppState):Entry[]{const eligible=s.entries.filter(e=>!e.gradeOnly&&(e.platform!=='cs135'||s.settings.cs135Enabled===true)&&(e.platform!=='mobius'||s.settings.mobiusEnabled===true)&&courseVisible(e.course,s,e.readerCourseId)&&!s.overlays[e.id]?.hidden&&(!s.overlays[e.id]?.linkedTo||!s.entries.some(t=>t.id===s.overlays[e.id].linkedTo&&!t.gone&&!s.overlays[t.id]?.hidden)));return mergeScheduleExams(mergeTasks(eligible,s),s)}
 export function clearSource(s:AppState,p:Platform):AppState{
  const ids=new Set(s.entries.filter(e=>e.platform===p).map(e=>e.id));const sources={...s.sources};delete sources[p];
@@ -24,6 +24,6 @@ export function possibleDuplicates(s:AppState):Array<[Entry,Entry]>{
  const list=visibleEntries(s);const result:Array<[Entry,Entry]>=[];const norm=(v:string)=>v.toLowerCase().replace(/assignment|\s|[^a-z0-9]/g,'');
  for(let i=0;i<list.length;i++)for(let j=i+1;j<list.length;j++){const a=list[i],b=list[j];if(a.platform!==b.platform&&a.course===b.course&&a.type===b.type&&(norm(a.title)===norm(b.title))&&(a.due||a.start)===(b.due||b.start))result.push([a,b])}return result;
 }
-export async function loadState():Promise<AppState>{const data=await chrome.storage.local.get('watdesk');const watdesk=data.watdesk as AppState|undefined;return watdesk?.schemaVersion===1?{...watdesk,settings:watdesk.settings.visualVersion===3?watdesk.settings:{...watdesk.settings,theme:'light',visualVersion:3}}:emptyState(navigator.language.startsWith('zh')?'zh-CN':'en')}
+export async function loadState():Promise<AppState>{const data=await chrome.storage.local.get('watdesk');const watdesk=data.watdesk as AppState|undefined;return watdesk?.schemaVersion===1?{...watdesk,entries:sanitizeUrls(watdesk.entries),settings:watdesk.settings.visualVersion===3?watdesk.settings:{...watdesk.settings,theme:'light',visualVersion:3}}:emptyState(navigator.language.startsWith('zh')?'zh-CN':'en')}
 let writes:Promise<unknown>=Promise.resolve();
 export function mutateState(fn:(s:AppState)=>AppState):Promise<AppState>{const job=writes.then(async()=>{const s=fn(await loadState());await chrome.storage.local.set({watdesk:s});return s});writes=job.catch(()=>{});return job}
