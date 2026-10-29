@@ -1,8 +1,7 @@
 # WatDesk anonymous usage counter
 
 A tiny Cloudflare Worker that counts how many WatDesk installs were used each day. It stores one random install ID per
-day and nothing else (no IP address, course, grade or account data). WatDesk only talks to it when a user turns on
-**Settings → Anonymous usage count**, which is off by default.
+day and nothing else (no IP address, course, grade or account data). WatDesk counts workspace openings automatically, at most once a day. Users can disable **Anonymous usage count** on the first-use screen or in Settings; a previously disabled choice is preserved.
 
 ## Set it up (about 10 minutes, free tier is enough)
 

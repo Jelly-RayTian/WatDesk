@@ -6,7 +6,7 @@ import {validateBackup} from '../src/core/util';
 // @ts-ignore plain JS Worker
 import worker from '../stats-worker/src/index.js';
 const ID='3f2b8c1e-9a4d-4e6b-8c2a-1d5e7f9a0b34',EP='https://watdesk-stats.example.workers.dev/ping',NOW=Date.parse('2026-10-29T15:00:00Z');
-it('ships with a configured HTTPS endpoint but requires explicit opt-in',async()=>{
+it('ships with a configured HTTPS endpoint but does not send before workspace initialization',async()=>{
  expect(STATS_ENDPOINT).toBe('https://watdesk-stats.guojelly123.workers.dev/ping');expect(statsConfigured()).toBe(true);
  const post=vi.fn();expect(emptyState().settings.usageStats?.enabled).not.toBe(true);
  expect(await sendUsagePing(emptyState().settings.usageStats,'1.9.0',NOW,post)).toBeNull();expect(post).not.toHaveBeenCalled();

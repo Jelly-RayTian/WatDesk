@@ -1,6 +1,5 @@
-// Opt-in, anonymous "this install was used today" counter. Nothing is sent unless the user turns it on AND a server
-// URL has been configured below (see stats-worker/README.md). What is sent is exactly `usageBody`: no courses, grades,
-// dates, accounts or browsing data.
+// Anonymous active-install counter, initialized on workspace opening. Users can disable it in Settings.
+// What is sent is exactly `usageBody`: no courses, grades, dates, accounts or browsing data.
 export const STATS_ENDPOINT='https://watdesk-stats.guojelly123.workers.dev/ping';
 export const statsConfigured=()=>/^https:\/\/[^/]+\/ping$/.test(STATS_ENDPOINT);
 export interface UsageStats {enabled:boolean;id?:string;lastPing?:string}

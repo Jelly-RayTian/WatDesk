@@ -1,6 +1,6 @@
 # WatDesk 1.9.0 — Edge Add-ons permission justifications
 
-Single purpose: organize a Waterloo student's own coursework, exams and grades from sites they are already signed in to. Academic data stays in local extension storage. An optional usage count is off by default and sends only a random install ID and version to the developer’s Cloudflare Worker. No academic data is sent; there is no remote code.
+Single purpose: organize a Waterloo student's own coursework, exams and grades from sites they are already signed in to. Academic data stays in local extension storage. A usage count is on by default, can be disabled in setup or Settings, and sends only a random install ID and version to the developer’s Cloudflare Worker. No academic data is sent; there is no remote code.
 
 | Permission | Why it is needed |
 | --- | --- |
@@ -13,5 +13,5 @@ Single purpose: organize a Waterloo student's own coursework, exams and grades f
 | Host `learn.uwaterloo.ca`, `app.crowdmark.com`, `odyssey.uwaterloo.ca` | Reads the user's own deadlines, exams and released grades from these services. |
 | Optional hosts `student.cs.uwaterloo.ca`, `adfs.uwaterloo.ca`, `uwmo.mobius.cloud` | Requested only when the user turns on CS 135 or optional CS course sites, the username-only sign-in helper, or Möbius. The helper never reads passwords or verification codes. |
 
-Extension-page CSP: `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; object-src 'none'; connect-src 'self' + source hosts + https://watdesk-stats.guojelly123.workers.dev` (no remote scripts or fonts; connections are limited to declared source hosts and the opt-in counter).
+Extension-page CSP: `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; object-src 'none'; connect-src 'self' + source hosts + https://watdesk-stats.guojelly123.workers.dev` (no remote scripts or fonts; connections are limited to declared source hosts and the usage counter).
 Icons: 16, 32, 48 and 128 px are bundled. The store listing also needs a separate 300x300 logo and 1280x800 screenshots, which are not part of the package.
