@@ -52,7 +52,7 @@ if(new URLSearchParams(location.search).has('econquiz')){
 // Representative synthetic workspace: never reads the student's actual records.
 const previewParams=new URLSearchParams(location.search);
 if(previewParams.has('showcase')){
- s=emptyState(previewParams.get('lang')==='en'?'en':'zh-CN');s.settings.onboardingComplete=true;s.settings.theme=previewParams.get('theme')==='dark'?'dark':'light';s.settings.cs135Enabled=true;
+ s=emptyState(previewParams.get('lang')==='en'?'en':'zh-CN');s.settings.onboardingComplete=true;s.settings.theme=previewParams.get('theme')==='dark'?'dark':'light';s.settings.cs135Enabled=true;s.settings.palette=(previewParams.get('palette') as typeof s.settings.palette)||s.settings.palette;if(previewParams.has('sites')){s.settings.courseSites=['cs241','cs240'];s.sources.sites={status:'ok',at:new Date().toISOString(),durationMs:900,error:'sites-partial:cs240'}}
  const now=Date.now(),iso=(days:number,hour=23)=>{const d=new Date(now+days*86400000);d.setHours(hour,0,0,0);return d.toISOString()};
  const courses=['CS 135','ECON 101','ENGL 119','MATH 135','MATH 137'];
  s.courses=courses.map((code,i)=>({id:'learn:'+i,code,name:['Designing Functional Programs','Introduction to Microeconomics','Communications in Mathematics','Algebra','Calculus 1'][i],term:'Fall 2026'}));

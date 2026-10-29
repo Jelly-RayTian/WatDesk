@@ -24,6 +24,6 @@ export function possibleDuplicates(s:AppState):Array<[Entry,Entry]>{
  const list=visibleEntries(s);const result:Array<[Entry,Entry]>=[];const norm=(v:string)=>v.toLowerCase().replace(/assignment|\s|[^a-z0-9]/g,'');
  for(let i=0;i<list.length;i++)for(let j=i+1;j<list.length;j++){const a=list[i],b=list[j];if(a.platform!==b.platform&&a.course===b.course&&a.type===b.type&&(norm(a.title)===norm(b.title))&&(a.due||a.start)===(b.due||b.start))result.push([a,b])}return result;
 }
-export async function loadState():Promise<AppState>{const data=await chrome.storage.local.get('watdesk');const watdesk=data.watdesk as AppState|undefined;return watdesk?.schemaVersion===1?{...watdesk,entries:sanitizeUrls(watdesk.entries),settings:watdesk.settings.visualVersion===3?watdesk.settings:{...watdesk.settings,theme:'light',visualVersion:3}}:emptyState(navigator.language.startsWith('zh')?'zh-CN':'en')}
+export async function loadState():Promise<AppState>{const data=await chrome.storage.local.get('watdesk');const watdesk=data.watdesk as AppState|undefined;return watdesk?.schemaVersion===1?{...watdesk,entries:sanitizeUrls(watdesk.entries),settings:watdesk.settings.visualVersion===3?watdesk.settings:{...watdesk.settings,theme:'light',visualVersion:3}}:emptyState('en')}
 let writes:Promise<unknown>=Promise.resolve();
 export function mutateState(fn:(s:AppState)=>AppState):Promise<AppState>{const job=writes.then(async()=>{const s=fn(await loadState());await chrome.storage.local.set({watdesk:s});return s});writes=job.catch(()=>{});return job}

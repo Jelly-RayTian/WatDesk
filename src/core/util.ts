@@ -1,4 +1,5 @@
 import {safeUrl,linkUrl} from './urls';
+import {isCourseSite} from './course-sites';
 import {meetingEntries,meetingForEntry} from './academic';
 import {personallyDone,personalNote} from './organization';
 import {visibleEntries} from './state';
@@ -39,7 +40,7 @@ export function validateBackup(text:string):AppState{
  if(typeof s.settings.zone!=='string')throw Error('restoreError');
  new Intl.DateTimeFormat('en',{timeZone:s.settings.zone});
  if(!Number.isFinite(s.settings.taskLead)||s.settings.taskLead<0||s.settings.taskLead>525600||!Array.isArray(s.settings.examLeads)||s.settings.examLeads.some((v:unknown)=>typeof v!=='number'||!Number.isFinite(v)||v<0||v>525600)||!Array.isArray(s.settings.mutedCourses))throw Error('restoreError');
- for(const e of s.entries){if(typeof e.id!=='string'||typeof e.title!=='string'||typeof e.course!=='string'||!['learn','crowdmark','odyssey','cs135','mobius','manual'].includes(e.platform)||!['exam','task'].includes(e.type)||!['open','submitted'].includes(e.status)||typeof e.url!=='string'||!(e.platform==='manual'?safeUrl(e.url):linkUrl(e.url)))throw Error('restoreError');for(const k of ['start','end','due'])if(e[k]!==null&&(typeof e[k]!=='string'||!Number.isFinite(Date.parse(e[k]))))throw Error('restoreError')}
+ for(const e of s.entries){if(typeof e.id!=='string'||typeof e.title!=='string'||typeof e.course!=='string'||!['learn','crowdmark','odyssey','cs135','mobius','sites','manual'].includes(e.platform)||!['exam','task'].includes(e.type)||!['open','submitted'].includes(e.status)||typeof e.url!=='string'||!(e.platform==='manual'?safeUrl(e.url):linkUrl(e.url)))throw Error('restoreError');for(const k of ['start','end','due'])if(e[k]!==null&&(typeof e[k]!=='string'||!Number.isFinite(Date.parse(e[k]))))throw Error('restoreError')}
  if(s.settings.visualVersion!==undefined&&(!Number.isInteger(s.settings.visualVersion)||s.settings.visualVersion<0))throw Error('restoreError');
  if(s.settings.activeTerm!==undefined&&(typeof s.settings.activeTerm!=='string'||s.settings.activeTerm.length>100))throw Error('restoreError');
  if(s.settings.classMeetings!==undefined&&(!Array.isArray(s.settings.classMeetings)||s.settings.classMeetings.length>100||s.settings.classMeetings.some((m:any)=>!m||['id','course','title','start','end','location'].some(k=>typeof m[k]!=='string')||!m.id||m.id.length>100||!Number.isInteger(m.weekday)||m.weekday<0||m.weekday>6||!/^([01]\d|2[0-3]):[0-5]\d$/.test(m.start)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(m.end)||m.end<=m.start||!Number.isFinite(m.leadMinutes)||m.leadMinutes<0||m.leadMinutes>1440||typeof m.enabled!=='boolean')))throw Error('restoreError');
@@ -48,10 +49,11 @@ export function validateBackup(text:string):AppState{
  if(s.settings.hiddenCourses!==undefined&&(!Array.isArray(s.settings.hiddenCourses)||s.settings.hiddenCourses.some((c:unknown)=>typeof c!=='string')))throw Error('restoreError');
  if(s.settings.gradePlans!==undefined){if(!s.settings.gradePlans||typeof s.settings.gradePlans!=='object'||Array.isArray(s.settings.gradePlans))throw Error('restoreError');for(const p of Object.values(s.settings.gradePlans) as any[]){if(!p||!p.weights||typeof p.weights!=='object'||Array.isArray(p.weights)||Object.values(p.weights).some((v:any)=>typeof v!=='number'||!Number.isFinite(v)||v<0||v>100)||p.target!==undefined&&(typeof p.target!=='number'||!Number.isFinite(p.target)||p.target<0||p.target>100))throw Error('restoreError')}}
  if(s.settings.syncIntervalMinutes!==undefined&&(!Number.isInteger(s.settings.syncIntervalMinutes)||s.settings.syncIntervalMinutes!==0&&(s.settings.syncIntervalMinutes<30||s.settings.syncIntervalMinutes>10080)))throw Error('restoreError');
- if(s.settings.palette!==undefined&&!['forest','ocean','plum','graphite'].includes(s.settings.palette))throw Error('restoreError');
+ if(s.settings.palette!==undefined&&!['forest','ocean','plum','graphite','glass'].includes(s.settings.palette))throw Error('restoreError');
  if(s.settings.schoolAutoNext!==undefined&&typeof s.settings.schoolAutoNext!=='boolean')throw Error('restoreError');
  if(s.settings.mobiusEnabled!==undefined&&typeof s.settings.mobiusEnabled!=='boolean')throw Error('restoreError');
  if(s.settings.cs135Enabled!==undefined&&typeof s.settings.cs135Enabled!=='boolean')throw Error('restoreError');
+ if(s.settings.courseSites!==undefined&&(!Array.isArray(s.settings.courseSites)||!s.settings.courseSites.every(isCourseSite)))throw Error('restoreError');
  if(s.settings.onboardingComplete!==undefined&&typeof s.settings.onboardingComplete!=='boolean')throw Error('restoreError');
  if(typeof s.settings.notifications!=='boolean'||s.settings.examLeads.length>10||s.settings.mutedCourses.some((v:unknown)=>typeof v!=='string'))throw Error('restoreError');
  const record=(v:unknown)=>!!v&&typeof v==='object'&&!Array.isArray(v);

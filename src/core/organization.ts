@@ -13,7 +13,7 @@ export function mergeTasks(entries:Entry[],s:AppState):Entry[]{
  for(const group of groups.values()){
   // Multiple assessments from one source make a match ambiguous.
   if(group.length<2||new Set(group.map(e=>e.platform)).size!==group.length){singles.push(...group);continue}
-  const rank=(e:Entry)=>(e.status==='submitted'?0:10)+({learn:0,mobius:1,crowdmark:1,cs135:2,odyssey:3,manual:4}[e.platform]);
+  const rank=(e:Entry)=>(e.status==='submitted'?0:10)+({learn:0,mobius:1,crowdmark:1,cs135:2,sites:2,odyssey:3,manual:4}[e.platform]);
   group.sort((a,b)=>rank(a)-rank(b)||a.id.localeCompare(b.id));
   singles.push({...group[0],duration:group.find(e=>e.platform==='mobius'&&e.duration)?.duration||group[0].duration,start:group[0].start||group.find(e=>e.start)?.start||null,mergedIds:group.map(e=>e.id),status:group.some(e=>e.status==='submitted')?'submitted':'open'});
  }
