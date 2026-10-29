@@ -1,4 +1,5 @@
 import {safeUrl,linkUrl} from './urls';
+import {isCourseSite} from './course-sites';
 import {meetingEntries,meetingForEntry} from './academic';
 import {personallyDone,personalNote} from './organization';
 import {visibleEntries} from './state';
@@ -52,6 +53,7 @@ export function validateBackup(text:string):AppState{
  if(s.settings.schoolAutoNext!==undefined&&typeof s.settings.schoolAutoNext!=='boolean')throw Error('restoreError');
  if(s.settings.mobiusEnabled!==undefined&&typeof s.settings.mobiusEnabled!=='boolean')throw Error('restoreError');
  if(s.settings.cs135Enabled!==undefined&&typeof s.settings.cs135Enabled!=='boolean')throw Error('restoreError');
+ if(s.settings.courseSites!==undefined&&(!Array.isArray(s.settings.courseSites)||!s.settings.courseSites.every(isCourseSite)))throw Error('restoreError');
  if(s.settings.onboardingComplete!==undefined&&typeof s.settings.onboardingComplete!=='boolean')throw Error('restoreError');
  if(typeof s.settings.notifications!=='boolean'||s.settings.examLeads.length>10||s.settings.mutedCourses.some((v:unknown)=>typeof v!=='string'))throw Error('restoreError');
  const record=(v:unknown)=>!!v&&typeof v==='object'&&!Array.isArray(v);

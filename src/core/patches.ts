@@ -1,5 +1,6 @@
 import type {Settings,Overlay} from '../domain';
-export const settingKeys=['syncIntervalMinutes','activeTerm','classMeetings','courseReminders','hiddenCourses','gradePlans','cs135Enabled','mobiusEnabled','onboardingComplete','visualVersion','locale','theme','palette','zone','taskLead','examLeads','notifications','mutedCourses'] satisfies (keyof Settings)[];
+import {isCourseSite} from './course-sites';
+export const settingKeys=['syncIntervalMinutes','activeTerm','classMeetings','courseReminders','hiddenCourses','gradePlans','cs135Enabled','courseSites','mobiusEnabled','onboardingComplete','visualVersion','locale','theme','palette','zone','taskLead','examLeads','notifications','mutedCourses'] satisfies (keyof Settings)[];
 const overlayKeys=['keepSeparate','done','note','hidden','linkedTo'] satisfies (keyof Overlay)[];
 function pick(patch:unknown,keys:readonly string[]):Record<string,unknown>{
  if(!patch||typeof patch!=='object'||Array.isArray(patch))throw Error('invalid');
@@ -12,7 +13,7 @@ function jsonValue(value:unknown):boolean{
  if(Array.isArray(value))return Array.from(value).every(jsonValue);
  return !!value&&typeof value==='object'&&Object.entries(value).every(([key,v])=>!['__proto__','constructor','prototype'].includes(key)&&jsonValue(v));
 }
-export function settingsPatch(patch:unknown):Partial<Settings>{const next=pick(patch,settingKeys);if(!jsonValue(next))throw Error('invalid');return next as Partial<Settings>}
+export function settingsPatch(patch:unknown):Partial<Settings>{const next=pick(patch,settingKeys);if(!jsonValue(next))throw Error('invalid');if('courseSites' in next&&(!Array.isArray(next.courseSites)||!next.courseSites.every(isCourseSite)))throw Error('invalid');return next as Partial<Settings>}
 export function overlayPatch(patch:unknown):Partial<Overlay>{
  const next=pick(patch,overlayKeys);
  for(const [key,value] of Object.entries(next)){

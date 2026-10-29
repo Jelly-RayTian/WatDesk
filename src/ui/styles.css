@@ -65,26 +65,10 @@
 .picker-pop li .picker-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.picker-pop li small{color:var(--muted);font-size:11px;white-space:nowrap}.picker-pop li svg{color:var(--accent)}
 .picker-pop li[data-active=true]{background:var(--soft)}.picker-pop li[aria-selected=true]{font-weight:650}.picker-pop li.picker-empty{cursor:default;color:var(--muted)}
 
-/* Liquid Glass: translucent, blurred surfaces over a soft colour field */
-:root[data-palette=glass]:not([data-theme=dark]){--bg:#e9eef9;--surface:rgba(255,255,255,.58);--ink:#14182b;--muted:#586079;--line:rgba(30,40,90,.12);--soft:rgba(255,255,255,.5);--accent:#0a63d8;--yellow:#7cc4ff;--rail:rgba(255,255,255,.5);--rail-text:#2a3150;--glass-edge:rgba(255,255,255,.7);--glass-shadow:0 10px 34px rgba(40,52,120,.12);--glass-field:radial-gradient(60% 50% at 12% 8%,#bcd7ff 0,transparent 70%),radial-gradient(50% 45% at 90% 14%,#ffd3ea 0,transparent 70%),radial-gradient(55% 50% at 70% 95%,#c9f2de 0,transparent 70%),radial-gradient(40% 40% at 8% 85%,#e2d4ff 0,transparent 70%)}
-:root[data-palette=glass][data-theme=dark]{--bg:#090c16;--surface:rgba(34,40,62,.52);--ink:#f2f5fc;--muted:#a3abc4;--line:rgba(255,255,255,.12);--soft:rgba(255,255,255,.08);--accent:#6db6ff;--yellow:#6db6ff;--rail:rgba(18,22,38,.55);--rail-text:#cdd5ea;--glass-edge:rgba(255,255,255,.16);--glass-shadow:0 12px 38px rgba(0,0,0,.4);--glass-field:radial-gradient(60% 50% at 12% 8%,#18366e 0,transparent 70%),radial-gradient(50% 45% at 90% 14%,#4a1f5f 0,transparent 70%),radial-gradient(55% 50% at 70% 95%,#0f4a55 0,transparent 70%),radial-gradient(40% 40% at 8% 85%,#2a2470 0,transparent 70%)}
-:root[data-palette=glass] body{background:var(--glass-field),var(--bg);background-attachment:fixed;min-height:100vh}
-:root[data-palette=glass] :is(.sidebar,.topbar,.exam-card,.settings-section,.sync-card,.sync-welcome,.resources,.source-panel,.grade-estimator,.grade-trend,.table-scroll,.setup-connections,.today-summary button,.workload,.agenda-date-group,.calendar-grid,.toolbar-menu-content,.editor,.picker-pop,.today-exam-notice,.palette-picker button){background:var(--surface);-webkit-backdrop-filter:blur(24px) saturate(1.8);backdrop-filter:blur(24px) saturate(1.8);border:1px solid var(--glass-edge);box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-edge)}
-:root[data-palette=glass] :is(.exam-card,.settings-section,.sync-card,.sync-welcome,.resources,.source-panel,.grade-estimator,.grade-trend,.table-scroll,.setup-connections,.workload,.agenda-date-group,.calendar-grid,.editor){border-radius:20px}
-:root[data-palette=glass] :is(.today-summary button,.toolbar-menu-content,.today-exam-notice){border-radius:16px}
-:root[data-palette=glass] .picker-pop{border-radius:18px}:root[data-palette=glass] .picker-pop li{border-radius:12px}
-:root[data-palette=glass] :is(input,select,textarea,.picker-trigger,.search){background:var(--soft);border:1px solid var(--glass-edge);border-radius:12px;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
-:root[data-palette=glass] .sidebar{border-radius:0;box-shadow:inset -1px 0 0 var(--glass-edge)}
-:root[data-palette=glass] .workload,:root[data-palette=glass] .agenda-date-group{padding-left:16px;padding-right:16px}
-:root[data-palette=glass] .agenda-item,:root[data-palette=glass] .agenda-row{background:transparent}
-:root[data-palette=glass] .button.primary{background:linear-gradient(180deg,#59adff,#0a7aff);color:#fff;border:1px solid rgba(255,255,255,.45);border-radius:999px;box-shadow:0 6px 18px rgba(10,122,255,.35),inset 0 1px 0 rgba(255,255,255,.55)}
-:root[data-palette=glass] .button.secondary{border-radius:999px;background:var(--soft);border:1px solid var(--glass-edge)}
-:root[data-palette=glass] .workload-day i{border-radius:8px}
-:root[data-palette=glass] .editor::backdrop{background:rgba(20,26,50,.28);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
-@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){:root[data-palette=glass]:not([data-theme=dark]){--surface:rgba(255,255,255,.9)}:root[data-palette=glass][data-theme=dark]{--surface:rgba(34,40,62,.94)}}
 .palette-picker [data-palette-option=glass]{--sw1:#7cc4ff;--sw2:#ffd3ea}
-:root[data-palette=glass]:not([data-theme=dark]) .sidebar nav button.selected{background:rgba(10,99,216,.13);color:var(--accent);border-left-color:var(--accent)}
-:root[data-palette=glass]:not([data-theme=dark]) .sidebar nav button:not(.selected):hover{background:rgba(255,255,255,.55)}
-:root[data-palette=glass] .sidebar nav button{border-radius:12px}
 :is(.settings-section,.workload,.exam-card,.grade-estimator,.grade-trend,.sync-card,.resources,.source-panel,.agenda-date-group,.calendar-toolbar,.filterbar):has(.picker.open){position:relative;z-index:50}
 .picker.open{z-index:60}
+.source-title{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}.source-title b{min-width:0;overflow-wrap:anywhere}
+.source-toggle{flex:none;min-height:28px;padding:3px 10px;border:1px solid var(--line);border-radius:999px;font-size:11px;color:var(--muted)}.source-toggle:hover{color:var(--ink);border-color:var(--accent)}
+.course-sites .check-label{padding:6px 0}
+.resources a{overflow-wrap:anywhere}
