@@ -36,3 +36,13 @@ it('shows why one course failed and when permission is missing',async()=>{
  const p=emptyState();p.settings.courseSites=['cs241'];p.sources.sites={status:'error',error:'permission'};
  ({host,done}=await mount(p));expect(host.textContent).toContain('Needs permission');await done();
 });
+it('lists what was read for a course and shows link-only courses as sources too',async()=>{
+ const s=emptyState();s.settings.courseSites=['cs241','cs116'];s.sources.sites={status:'ok',at:'2026-10-29T15:00:00Z',count:1};
+ s.entries=[{id:'sites:cs241:assignment-5',platform:'sites',course:'CS 241',title:'Assignment 5',type:'task',start:null,end:null,due:'2026-11-09T22:00:00Z',status:'open',url:''}];
+ const {host,done}=await mount(s);
+ const read=host.querySelector('.site-read-list')!;
+ expect(read.textContent).toContain('Assignment 5');expect(read.textContent).toContain('What was read · 1');
+ const link=[...host.querySelectorAll('.source-row')].find(r=>r.querySelector('b')?.textContent==='CS 116')!;
+ expect(link.textContent).toContain('Link only');expect(link.querySelector('a')?.getAttribute('href')).toBe('https://student.cs.uwaterloo.ca/~cs116/');
+ expect(host.querySelector('.source-panel .small')?.textContent).toContain('Enabled 5');await done();
+});
