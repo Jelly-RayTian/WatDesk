@@ -39,7 +39,7 @@ Optional courses are off by default because not everyone takes them. Turn them o
 
 ## Your data stays yours
 
-- Everything is stored in your own browser. There is no WatDesk server and no account.
+- Academic data is stored in your own browser and is never uploaded to a WatDesk backend. No separate account is required.
 - WatDesk never sees or stores your passwords, cookies or verification codes, and never submits anything for you.
 - No ads. An optional, anonymous "how many people use WatDesk" counter is available; it is **off unless you switch it on**, and the Settings page shows exactly what it sends.
 
