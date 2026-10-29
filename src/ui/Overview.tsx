@@ -4,6 +4,7 @@ import type {AppState,Entry} from '../domain';
 import {buildOverview} from '../core/overview';
 import {fmtEntry,stamp} from '../core/util';
 import {NextClasses} from './CourseReminders';
+import {Workload} from './Workload';
 interface Props {state:AppState;entries:Entry[];now:number;course:string;setCourse:(course:string)=>void;allCourses:string[];courseStyle:(course:string)=>CSSProperties;onAdd:()=>void;onCalendar:()=>void;onExams:()=>void;onSources:()=>void;renderTask:(entry:Entry)=>ReactNode;renderExam:(entry:Entry)=>ReactNode;sources:ReactNode;resources:ReactNode}
 export function Overview({state,entries,now,course,setCourse,allCourses,courseStyle,onAdd,onCalendar,onExams,onSources,renderTask,renderExam,sources,resources}:Props){
  const zh=state.settings.locale==='zh-CN',locale=state.settings.locale,zone=state.settings.zone;
@@ -20,6 +21,7 @@ export function Overview({state,entries,now,course,setCourse,allCourses,courseSt
   <section className="today-summary" aria-label={zh?'今天的安排':'Today at a glance'}><button onClick={onCalendar}><span><CheckCircle size={16}/>{zh?'今天截止':'Due today'}</span><strong className="today-tasks-count">{model.todayTasks.length}</strong></button><button onClick={onExams}><span><GraduationCap size={17}/>{zh?'今天考试':'Exams today'}</span><strong className="today-exams-count">{model.todayExams.length}</strong></button><button onClick={onCalendar}><span><CalendarBlank size={16}/>{zh?'未来安排':'Upcoming'}</span><strong>{model.future.length}</strong></button></section>
   {model.todayExams.length>0&&<div className="today-exam-notice"><GraduationCap size={18}/><div><strong>{zh?'今天有考试':'You have an exam today'}</strong><span>{model.todayExams.map(e=>`${e.course} · ${e.title}`).join(' / ')}</span></div><button className="text-button" onClick={onExams}>{zh?'查看':'View'}<ArrowRight size={15}/></button></div>}
   <NextClasses state={state}/>
+  <Workload state={state} groups={model.groups} today={model.today}/>
   <section className="task-section agenda-section"><header className="section-title"><div><p className="eyebrow">{zh?'你的日程':'YOUR AGENDA'}</p><h2>{zh?'即将到来':'Coming up'}</h2></div><button className="text-button" onClick={onAdd}><Plus size={16}/>{zh?'添加事项':'Add item'}</button></header>
    <div className="agenda-filters"><div className="course-filters" aria-label={zh?'课程':'Course'}>{['all',...activeCourses].map(selectCourse)}</div>{otherCourses.length>0&&<details className="more-courses"><summary>{zh?'全部课程':'All courses'} <span>{allCourses.length}</span></summary><div className="course-filters">{otherCourses.map(selectCourse)}</div></details>}</div>
    {groups.map(group=><section className="agenda-date-group" key={group.day}><header><h3>{group.day===model.today?(zh?'今天':'Today'):dateLabel(group.day)}</h3><span>{group.entries.length} {zh?'项安排':'items'}</span></header><div className="agenda-items">{group.entries.map(e=>e.type==='exam'?renderExam(e):renderTask(e))}</div></section>)}

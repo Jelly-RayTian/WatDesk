@@ -1,5 +1,16 @@
 # WatDesk
 
+> One desk for your Waterloo days. LEARN, Crowdmark and Odyssey deadlines, exams and grades in one bilingual Edge side panel. Everything stays in your browser: no server, no analytics, no password collection.
+> 课程、作业和考试，放在同一张桌上。数据只保存在你的浏览器里。
+
+**Quick start / 快速开始:** [Download v1.4.3](https://github.com/Jelly-RayTian/WatDesk/releases/download/v1.4.3/WatDesk-v1.4.3-edge.zip) · Edge Add-ons listing: pending review / 商店审核中 · [Report a problem / 反馈](https://github.com/Jelly-RayTian/WatDesk/issues/new/choose)
+
+**Highlights / 亮点:** unified deadlines, exams and grades · two-week workload view (next release) · quiet background sync · reminders and ICS export · full JSON backup · Chinese and English.
+
+*Screenshots: add `docs/screenshots/*.png` here once captured.*
+
+---
+
 **Latest release / 最新发布：[v1.4.3](https://github.com/Jelly-RayTian/WatDesk/releases/tag/v1.4.3)** · [Download ZIP / 下载安装包](https://github.com/Jelly-RayTian/WatDesk/releases/download/v1.4.3/WatDesk-v1.4.3-edge.zip) · [Privacy / 隐私政策](https://github.com/Jelly-RayTian/WatDesk/blob/v1.4.3/PRIVACY.md) · [Support / 问题反馈](https://github.com/Jelly-RayTian/WatDesk/issues)
 
 This guide describes v1.4.3. The default `main` branch includes v1.4.3; its exact released source is preserved at the [v1.4.3 tag](https://github.com/Jelly-RayTian/WatDesk/tree/v1.4.3). GitHub downloads are available now. Edge Add-ons submission is a separate process; a store installation link will be added when available.
