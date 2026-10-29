@@ -1,6 +1,7 @@
 import {crowdmarkApiUrl} from './crowdmark-bridge';
 import {platforms,urls,origins,type Platform,type AppState,type Course,type Entry,type LearnReadIssue} from '../domain';
 import {enrichCs135Submissions,readCs135Submissions} from './cs135-submissions';
+import {readCourseSites} from './course-sites';
 import {readOdyssey} from './odyssey';
 import {withTemporaryTab} from './temporary-tab';
 import {autoLogin} from './login';
@@ -40,6 +41,7 @@ export async function readPlatform(...args:Parameters<typeof readPlatformOnce>):
 async function readPlatformOnce(p:ReaderPlatform,state:AppState,forceGrades=false,existingTabId?:number,signal?:AbortSignal):Promise<{entries:Entry[];courses:Course[];identity?:string;warning?:string;gradesAt?:string;issues?:LearnReadIssue[];courseReadAt?:Record<string,string>}>{
  if(!platforms.includes(p))throw Error('platform');if(!(await chrome.permissions.contains({origins:[origins[p]]})))throw Error('permission');
  if(p==='mobius')return readMobius(state);
+ if(p==='sites')return readCourseSites(state);
  if(p==='learn'){
   const tabId=existingTabId;
   const source=new LiveSource({school:'uwaterloo'},{relay:(_base:string,path:string)=>relay('learn',path,tabId)});

@@ -1,5 +1,5 @@
 import {type AppState,type SyncStatus,type Platform} from '../domain';
-const minutes:Record<string,number>={learn:2,crowdmark:2,odyssey:5,cs135:30};
+const minutes:Record<string,number>={learn:2,crowdmark:2,odyssey:5,cs135:30,sites:30};
 export function canReuseSource(p:Platform,status:SyncStatus|undefined,force=false,now=Date.now(),intervalMinutes?:number){
  const age=now-Date.parse(status?.at||'');
  return !force&&status?.status==='ok'&&!status.phase&&(!status.error||p==='crowdmark'&&/^crowdmark-(?:grades|archive)/.test(status.error))&&Number.isFinite(age)&&age>=0&&age<(intervalMinutes===0?Infinity:(intervalMinutes??minutes[p]??0)*60000);

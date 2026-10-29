@@ -13,7 +13,8 @@ import {sourceTab,existingSourceTab} from '../adapters/source-tabs';
 import {configureSchoolLogin} from './school-login';
 import {autoLogin} from '../adapters/login';
 import {waitForTab} from '../core/sync';
-import {enabledPlatforms} from '../core/onboarding';
+import {enabledPlatforms,sitesEnabled} from '../core/onboarding';
+import {readableSiteIds} from '../core/course-sites';
 import {pendingExamChanges} from '../core/organization';
 import {syncMinutes,configureSyncSchedule} from './sync-schedule';
 import {canReuseSource} from '../core/refresh-policy';
@@ -42,6 +43,8 @@ async function refreshOnOpen(forceGrades=false,interactive?:boolean,scheduled=fa
    await mutateState(s=>({...s,syncRun:{...s.syncRun!,...(s.sources[p]?.status==='ok'?{completed:[...new Set([...s.syncRun!.completed,p])]}:{failed:s.syncRun!.failed||p})}}));
   }));
   await mutateState(s=>({...s,syncRun:{...s.syncRun!,finished:true}}));
+  const after=await loadState();
+  if(sitesEnabled(after)&&await chrome.permissions.contains({origins:[origins.sites]})&&(forceGrades||syncMinutes(after.settings)!==0)&&(scheduled||!canReuseSource('sites',after.sources.sites,forceGrades,Date.now(),syncMinutes(after.settings))))await sync('sites',forceGrades,interactive).catch(()=>{});
  })();try{await openedRun}finally{openedRun=undefined}
 }
 function sync(p:Exclude<Platform,'manual'>,forceGrades=true,interactive=true):Promise<void>{
@@ -52,6 +55,7 @@ function sync(p:Exclude<Platform,'manual'>,forceGrades=true,interactive=true):Pr
 async function runSync(p:Exclude<Platform,'manual'>,forceGrades:boolean,interactive:boolean){
  await ready;if(!interactive&&syncMinutes((await loadState()).settings)===0)return;if(p==='mobius'&&(await loadState()).settings.mobiusEnabled!==true)return;
  if(p==='cs135'&&(await loadState()).settings.cs135Enabled!==true)return;
+ if(p==='sites'&&!sitesEnabled(await loadState()))return;
  const token=fence.capture(p);const started=Date.now();const controller=new AbortController();let cancelled=false;const current=()=>!cancelled&&fence.current(p,token);
  try{
   await mutateState(s=>({...s,sources:{...s.sources,[p]:{...s.sources[p],attempt:new Date().toISOString(),phase:'page',status:'syncing'}}}));
@@ -98,7 +102,7 @@ async function handle(msg:any){await ready;switch(msg.type){
  case 'state':return loadState();
  case 'sync':if(platforms.includes(msg.platform)){void sync(msg.platform);return {ok:true}}throw Error('platform');
  case 'schoolLogin':{if(typeof msg.enabled!=='boolean')throw Error('invalid');await configureSchoolLogin(msg.enabled);return mutateState(s=>({...s,settings:{...s.settings,schoolAutoNext:msg.enabled}}))}
- case 'settings':{const patch=settingsPatch(msg.patch);const saved=await mutateState(s=>{const settings={...s.settings,...patch};const next=validateBackup(JSON.stringify({...s,settings}));if(patch.mobiusEnabled===false)fence.invalidate('mobius');if(patch.cs135Enabled===false)fence.invalidate('cs135');if(patch.mobiusEnabled===false&&next.sources.mobius)next.sources.mobius={...next.sources.mobius,phase:undefined,status:next.sources.mobius.at?'ok':'idle',error:undefined};if(patch.cs135Enabled===false&&next.sources.cs135)next.sources.cs135={...next.sources.cs135,phase:undefined,status:next.sources.cs135.at?'ok':'idle',error:undefined};return next});await configureSyncSchedule(saved.settings);return saved;}
+ case 'settings':{const patch=settingsPatch(msg.patch);const saved=await mutateState(s=>{const settings={...s.settings,...patch};const next=validateBackup(JSON.stringify({...s,settings}));if(patch.courseSites){const keep=new Set(readableSiteIds(patch.courseSites));const gone=(e:{id:string})=>/^sites:(cs\d+[a-z]?):/.test(e.id)&&!keep.has(e.id.split(':')[1]);next.entries=next.entries.filter(e=>!gone(e));next.courses=next.courses.filter(c=>!c.id.startsWith('sites:')||keep.has(c.id.slice(6)));if(!keep.size){fence.invalidate('sites');delete next.sources.sites}}if(patch.mobiusEnabled===false)fence.invalidate('mobius');if(patch.cs135Enabled===false)fence.invalidate('cs135');if(patch.mobiusEnabled===false&&next.sources.mobius)next.sources.mobius={...next.sources.mobius,phase:undefined,status:next.sources.mobius.at?'ok':'idle',error:undefined};if(patch.cs135Enabled===false&&next.sources.cs135)next.sources.cs135={...next.sources.cs135,phase:undefined,status:next.sources.cs135.at?'ok':'idle',error:undefined};return next});await configureSyncSchedule(saved.settings);if(patch.courseSites&&sitesEnabled(saved)&&await chrome.permissions.contains({origins:[origins.sites]}))void sync('sites',true,true).catch(()=>{});return saved;}
  case 'overlay':{const patch=overlayPatch(msg.patch);return mutateState(s=>{const ids=Array.isArray(msg.ids)?msg.ids:[msg.id];const overlays={...s.overlays};for(const id of ids)if(s.entries.some(e=>e.id===id))overlays[id]={...overlays[id],...patch};return {...s,overlays}});}
  case 'importItems':return mutateState(s=>importDeadlineItems(s,msg.text));
  case 'manual':return mutateState(s=>{const entry=msg.entry as Entry;if(entry.platform!=='manual'||!entry.title.trim()||!safeUrl(entry.url)||!['exam','task'].includes(entry.type))throw Error('invalid');const next={...s,entries:[...s.entries.filter(e=>e.id!==entry.id),entry]};return validateBackup(JSON.stringify(next))});

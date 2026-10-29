@@ -1,4 +1,4 @@
-export type Platform='learn'|'crowdmark'|'odyssey'|'cs135'|'mobius'|'manual';
+export type Platform='learn'|'crowdmark'|'odyssey'|'cs135'|'mobius'|'sites'|'manual';
 export type Locale='zh-CN'|'en';
 export type Palette='forest'|'ocean'|'plum'|'graphite'|'glass';
 export const palettes:Palette[]=['forest','ocean','plum','graphite','glass'];
@@ -13,6 +13,7 @@ export interface Settings {courseSites?:string[];syncIntervalMinutes?:number;sch
 export interface SyncRun {reused?:Exclude<Platform,'manual'>[];started:number;targets:Exclude<Platform,'manual'>[];completed:Exclude<Platform,'manual'>[];active?:Exclude<Platform,'manual'>;failed?:Exclude<Platform,'manual'>;finished:boolean}
 export interface AppState {syncRun?:SyncRun;schemaVersion:1;settings:Settings;courses:Course[];entries:Entry[];overlays:Record<string,Overlay>;sources:Record<string,SyncStatus>;sent:Record<string,string>;changes:Array<{kind?:'exam';id:string;title:string;at:string;before:string;after:string}>}
 export function emptyState(locale:Locale='en'):AppState{return {schemaVersion:1,settings:{syncIntervalMinutes:360,visualVersion:3,locale,theme:'light',zone:'America/Toronto',taskLead:1440,examLeads:[1440,60],notifications:true,mutedCourses:[]},courses:[],entries:[],overlays:{},sources:{},sent:{},changes:[]}}
-export const platforms:Exclude<Platform,'manual'>[]=['learn','crowdmark','odyssey','cs135','mobius'];
-export const urls:Record<Platform,string>={learn:'https://learn.uwaterloo.ca/d2l/home',crowdmark:'https://app.crowdmark.com/student/courses',odyssey:'https://odyssey.uwaterloo.ca/teaching/schedule',cs135:'https://student.cs.uwaterloo.ca/~cs135/',mobius:'https://learn.uwaterloo.ca/d2l/home',manual:''};
-export const origins:Record<Platform,string>={learn:'https://learn.uwaterloo.ca/*',crowdmark:'https://app.crowdmark.com/*',odyssey:'https://odyssey.uwaterloo.ca/*',cs135:'https://student.cs.uwaterloo.ca/*',mobius:'https://uwmo.mobius.cloud/*',manual:''};
+export const platforms:Exclude<Platform,'manual'>[]=['learn','crowdmark','odyssey','cs135','mobius','sites'];
+export const connectPlatforms=platforms.filter((p):p is Exclude<Platform,'manual'|'sites'>=>p!=='sites');
+export const urls:Record<Platform,string>={learn:'https://learn.uwaterloo.ca/d2l/home',crowdmark:'https://app.crowdmark.com/student/courses',odyssey:'https://odyssey.uwaterloo.ca/teaching/schedule',cs135:'https://student.cs.uwaterloo.ca/~cs135/',mobius:'https://learn.uwaterloo.ca/d2l/home',sites:'https://student.cs.uwaterloo.ca/',manual:''};
+export const origins:Record<Platform,string>={learn:'https://learn.uwaterloo.ca/*',crowdmark:'https://app.crowdmark.com/*',odyssey:'https://odyssey.uwaterloo.ca/*',cs135:'https://student.cs.uwaterloo.ca/*',mobius:'https://uwmo.mobius.cloud/*',sites:'https://student.cs.uwaterloo.ca/*',manual:''};
