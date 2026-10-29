@@ -113,3 +113,14 @@
 :root[data-palette=glass] .today-summary button{padding:14px 16px;min-width:0}
 :root[data-palette=glass] :is(.settings-section,.source-panel,.resources,.hidden-items,.local-data)+:is(.settings-section,.source-panel,.resources,.hidden-items,.local-data,.advanced-settings){margin-top:18px}
 :root[data-palette=glass] .advanced-settings{border-radius:20px;padding:4px 14px}
+
+/* Stacking: backdrop-filter makes every panel its own stacking context, so the top bar (and its menu) must sit above the page content. */
+:root[data-palette=glass] .topbar{position:relative;z-index:60}
+:root[data-palette=glass] .toolbar-menu-content{z-index:70;background-color:var(--surface-strong);box-shadow:var(--g-bevel),var(--g-shadow-lift)}
+:root[data-palette=glass] .toolbar-menu-content button{border-radius:12px;transition:background .2s,transform .3s var(--ease-spring)}
+:root[data-palette=glass] .toolbar-menu-content button:hover{transform:translateX(2px)}
+
+/* Popovers live inside blurred panels, where backdrop blur cannot reach the page behind them, so they need a near-opaque fill. */
+:root[data-palette=glass]:not([data-theme=dark]){--pop-bg:rgba(248,250,255,.97)}
+:root[data-palette=glass][data-theme=dark]{--pop-bg:rgba(28,34,56,.97)}
+:root[data-palette=glass] .toolbar-menu .toolbar-menu-content,:root[data-palette=glass] .picker .picker-pop{background-color:var(--pop-bg);background-image:var(--g-sheen);-webkit-backdrop-filter:none;backdrop-filter:none}
