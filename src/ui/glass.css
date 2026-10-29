@@ -59,7 +59,7 @@
 :root[data-palette=glass] .brand-mark{background:linear-gradient(145deg,#6db8ff,#4f6bff);color:#fff;border-radius:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 6px 16px rgba(60,100,255,.4)}
 
 /* Navigation: glass pill that glides between destinations */
-:root[data-palette=glass] .sidebar nav button{border-radius:14px;border:1px solid transparent;transition:background .3s var(--ease-out),color .2s,border-color .3s,transform .4s var(--ease-spring)}
+:root[data-palette=glass] .sidebar nav button{border-radius:14px;border:1px solid transparent;transition:background .3s var(--ease-out),color .2s,transform .4s var(--ease-spring)}
 :root[data-palette=glass] .sidebar nav button svg{transition:transform .45s var(--ease-spring)}
 :root[data-palette=glass] .sidebar nav button:hover svg{transform:scale(1.14) translateY(-1px)}
 :root[data-palette=glass] .sidebar nav button:not(.selected):hover{background:var(--soft);color:var(--ink)}
