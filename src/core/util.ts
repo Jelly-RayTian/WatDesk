@@ -9,7 +9,10 @@ export const stamp=(e:Entry)=>e.type==='exam'?e.start:e.due;
 export function fmt(iso:string|null,locale:string,zone:string,withTime=true):string{if(!iso)return locale==='zh-CN'?'尚未公布':'Not published';return new Intl.DateTimeFormat(locale,{timeZone:zone,month:'short',day:'numeric',...(withTime?{hour:'2-digit',minute:'2-digit',hourCycle:'h23' as const}:{} )}).format(new Date(iso))}
 export function fmtEntry(e:Entry,locale:string,zone:string,withTime=true):string{return e.dateOnly?fmt(e.dateOnly+'T12:00:00Z',locale,'UTC',false):fmt(stamp(e),locale,zone,withTime)}
 export function localInput(iso:string|null,zone:string):string{return iso?Temporal.Instant.from(iso).toZonedDateTimeISO(zone).toPlainDateTime().toString().slice(0,16):''}
-export function examConflicts(entries:Entry[]):Array<[Entry,Entry]>{const es=entries.filter(e=>e.type==='exam'&&e.start&&e.end&&!e.gone);const out:Array<[Entry,Entry]>=[];for(let i=0;i<es.length;i++)for(let j=i+1;j<es.length;j++)if(es[i].start!<es[j].end!&&es[j].start!<es[i].end!)out.push([es[i],es[j]]);return out}
+const courseKey=(c:string)=>c.toLowerCase().replace(/[^a-z0-9]/g,'');
+// The same exam can arrive from several sources under different titles (e.g. LEARN "MATH 135 Quiz 1" and Möbius "Quiz W4"). Entries of one course, or identical windows with a missing course, describe one sitting rather than a clash.
+const sameExam=(a:Entry,b:Entry)=>{const ca=courseKey(a.course||''),cb=courseKey(b.course||'');return ca!==''&&ca===cb||(ca===''||cb==='')&&a.start===b.start&&a.end===b.end};
+export function examConflicts(entries:Entry[]):Array<[Entry,Entry]>{const es=entries.filter(e=>e.type==='exam'&&e.start&&e.end&&!e.gone);const out:Array<[Entry,Entry]>=[];for(let i=0;i<es.length;i++)for(let j=i+1;j<es.length;j++)if(es[i].start!<es[j].end!&&es[j].start!<es[i].end!&&!sameExam(es[i],es[j]))out.push([es[i],es[j]]);return out}
 export function planReminders(s:AppState,now:string){
  const at=Date.parse(now);const out:Array<{key:string;entry:Entry;lead:number}>=[];
  if(!s.settings.notifications)return out;
