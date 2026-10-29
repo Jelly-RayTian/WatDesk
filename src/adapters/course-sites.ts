@@ -74,19 +74,20 @@ export async function readCourseSites(state:AppState,fetcher:typeof fetch=fetch,
   cs240:{url:`${BASE}~cs240/${term}/assignments.phtml`,parse:h=>parseCs240(h,term,now)},
   cs145:{url:`${BASE}~cs145/calendar.shtml`,parse:h=>parseCs145(h,now)},
  };
- const entries:Entry[]=[],courses:Course[]=[],failed:string[]=[];
+ const entries:Entry[]=[],courses:Course[]=[],failed:string[]=[],reasons:string[]=[];
+ const why=(e:unknown)=>{const m=e instanceof Error?e.message:String(e);return m.startsWith('site-http:')?`http-${m.split(':')[2]}`:m.startsWith('site-format')?'layout':'network'};
  for(const id of ids){
   const site=courseSites.find(c=>c.id===id)!;const job=jobs[id];if(!job)continue;
   try{
-   const r=await fetcher(job.url,{signal:AbortSignal.timeout(20000),cache:'no-store',redirect:'error'});if(!r.ok)throw Error(`site-http:${id}:${r.status}`);
+   const r=await fetcher(job.url,{signal:AbortSignal.timeout(20000),cache:'no-store'});if(r.url&&new URL(r.url).hostname!=='student.cs.uwaterloo.ca')throw Error(`site-http:${id}:redirect`);if(!r.ok)throw Error(`site-http:${id}:${r.status}`);
    entries.push(...job.parse(await r.text()));courses.push({id:`sites:${id}`,code:site.code,name:site.name||site.code});
-  }catch{
-   failed.push(id);
+  }catch(e){
+   failed.push(id);reasons.push(`${id}=${why(e)}`);
    // Keep what was read last time rather than dropping a course because its page changed or was unreachable.
    entries.push(...state.entries.filter(e=>e.platform==='sites'&&e.id.startsWith(`sites:${id}:`)&&!e.gone).map(e=>({...e,readState:'retained' as const})));
    courses.push({id:`sites:${id}`,code:site.code,name:site.name||site.code});
   }
  }
- if(failed.length===ids.length)throw Error(`sites-unavailable:${failed.join(',')}`);
- return {entries,courses,warning:failed.length?`sites-partial:${failed.join(',')}`:undefined};
+ if(failed.length===ids.length)throw Error(`sites-unavailable:${reasons.join(',')}`);
+ return {entries,courses,warning:failed.length?`sites-partial:${reasons.join(',')}`:undefined};
 }

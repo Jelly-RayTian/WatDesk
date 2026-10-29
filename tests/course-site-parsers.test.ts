@@ -40,12 +40,12 @@ it('keeps the last data for a course whose page fails and reports a partial read
  s.entries=[{id:'sites:cs241:assignment-5',platform:'sites',course:'CS 241',title:'Assignment 5',type:'task',start:null,end:null,due:'2026-11-09T22:00:00Z',status:'open',url:''}];
  const fetcher=(async(u:string)=>u.includes('cs145')?new Response(CS145,{status:200}):new Response('',{status:500})) as unknown as typeof fetch;
  const r=await readCourseSites(s,fetcher,NOW);
- expect(r.warning).toBe('sites-partial:cs241');
+ expect(r.warning).toBe('sites-partial:cs241=http-500');
  expect(r.entries.map(e=>e.id).sort()).toEqual(['sites:cs145:midterm-2','sites:cs241:assignment-5']);
  expect(r.entries.find(e=>e.id==='sites:cs241:assignment-5')?.readState).toBe('retained');
 });
 it('fails outright only when every enabled site fails',async()=>{
  const s=emptyState();s.settings.courseSites=['cs241'];
  const fetcher=(async()=>new Response('',{status:404})) as unknown as typeof fetch;
- await expect(readCourseSites(s,fetcher,NOW)).rejects.toThrow('sites-unavailable:cs241');
+ await expect(readCourseSites(s,fetcher,NOW)).rejects.toThrow('sites-unavailable:cs241=http-404');
 });
