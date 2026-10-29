@@ -1,6 +1,6 @@
 # WatDesk Privacy Policy / 隐私政策
 
-Effective date: October 27, 2026. Applies to WatDesk for Microsoft Edge, version 1.3.0 and later unless updated here.
+Effective date: October 29, 2026. Applies to WatDesk for Microsoft Edge, version 1.9.0 and later unless updated here.
 
 WatDesk is an independent project maintained by Jelly-RayTian. It is not an official University of Waterloo product. Project and privacy contact: https://github.com/Jelly-RayTian/WatDesk/issues . Do not include private academic records, passwords or verification codes in a public issue.
 
@@ -22,7 +22,7 @@ The permissions for storage, scheduled alarms, notifications, the side panel, sc
 
 ## Optional anonymous usage count
 
-Off by default, and only present in releases that name a counting server. If you turn on **Settings → Anonymous usage count**, WatDesk sends at most one request per day containing exactly two fields: a random install ID generated on your device and the WatDesk version number (the Settings page shows the exact text before and after you enable it). It never includes courses, grades, deadlines, notes, account names, browsing history or any school data. The server records that this ID was active that day, sets the date itself, and keeps IDs for at most 400 days; it is used only to estimate how many people use WatDesk. Turning the option off stops all requests and deletes the ID from your device.
+Off by default. If you turn on **Settings → Anonymous usage count**, WatDesk sends at most one request per day containing exactly two fields: a random install ID generated on your device and the WatDesk version number (the Settings page shows the exact text before and after you enable it). It never includes courses, grades, deadlines, notes, account names, browsing history or any school data. The counting server is operated by the developer using Cloudflare Workers and KV at `https://watdesk-stats.guojelly123.workers.dev/ping`. It records that this ID was active that day, sets the date itself, and keeps IDs for at most 400 days; it is used only to estimate how many people use WatDesk. The application does not store IP addresses; Cloudflare processes network connection information to provide the service under its privacy policy: https://www.cloudflare.com/privacypolicy/ . Turning the option off stops all requests and deletes the ID from your device; existing server records expire within the retention period.
 
 ## Sharing, exports and notifications
 
@@ -49,5 +49,7 @@ WatDesk 是由 Jelly-RayTian 维护的独立 Edge 扩展，非滑铁卢大学官
 课程数据、个人事项、备注、完成标记、提醒设置和来源状态保存在当前 Edge 配置文件的本地扩展存储中。WatDesk 没有接收这些学业数据的开发者后台，不向广告、统计或 AI 服务上传这些记录。为同步，浏览器使用现有登录状态直接通过 HTTPS 访问对应学校或 Crowdmark 服务；平台按自身隐私政策处理请求。扩展不收集或保存密码、原始会话 Cookie、访问令牌或验证码。可选学校登录辅助只检查已输入的大学用户名并推进用户名步骤，不读取或处理密码和验证码。
 
 你主动导出的 JSON、CSV、ICS 或离线 HTML 文件可能包含私人学业信息和备注，是否分享或导入其他软件由你决定。通知可能显示课程或考核信息，可以在扩展与系统设置中关闭或调整。你可以修改同步间隔、隐藏或静音课程、停用可选来源与登录辅助、清理来源记录或本地数据，并在 Edge 中撤销权限。隐藏和同步失败时保留的记录仍在本地，直到被更新或清除。卸载扩展会移除扩展本地数据，但不删除平台原始记录和已导出文件。
+
+可选“匿名使用统计”默认关闭。主动开启后，每天最多向开发者托管在 Cloudflare Workers 和 KV 的 `https://watdesk-stats.guojelly123.workers.dev/ping` 发送一次随机安装编号和扩展版本号，服务器记录当天活跃状态，最多保留 400 天。不发送课程、成绩、截止日期、账号或浏览记录。应用不保存 IP 地址；Cloudflare 为提供服务会处理网络连接信息，适用其隐私政策 https://www.cloudflare.com/privacypolicy/ 。关闭后停止发送并删除本地随机编号，服务器已有记录到期清除。
 
 隐私问题可通过 https://github.com/Jelly-RayTian/WatDesk/issues 联系；请勿在公开问题中提交真实成绩单、密码、验证码等私人内容。

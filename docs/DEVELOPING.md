@@ -12,7 +12,7 @@ pnpm build      # app + service worker + assets into dist/
 pnpm package    # copies dist/ to ../../outputs/WatDesk/extension
 ```
 
-To build exactly what a release contains, clone the tag: `git clone --branch v1.4.3 --depth 1 …`.
+To build exactly what a release contains, clone the tag: `git clone --branch v1.9.0 --depth 1 …`.
 
 ## Layout
 

@@ -6,7 +6,11 @@ import {validateBackup} from '../src/core/util';
 // @ts-ignore plain JS Worker
 import worker from '../stats-worker/src/index.js';
 const ID='3f2b8c1e-9a4d-4e6b-8c2a-1d5e7f9a0b34',EP='https://watdesk-stats.example.workers.dev/ping',NOW=Date.parse('2026-10-29T15:00:00Z');
-it('ships disabled: no endpoint means nothing can be sent or shown',()=>{expect(STATS_ENDPOINT).toBe('');expect(statsConfigured()).toBe(false)});
+it('ships with a configured HTTPS endpoint but requires explicit opt-in',async()=>{
+ expect(STATS_ENDPOINT).toBe('https://watdesk-stats.guojelly123.workers.dev/ping');expect(statsConfigured()).toBe(true);
+ const post=vi.fn();expect(emptyState().settings.usageStats?.enabled).not.toBe(true);
+ expect(await sendUsagePing(emptyState().settings.usageStats,'1.9.0',NOW,post)).toBeNull();expect(post).not.toHaveBeenCalled();
+});
 it('validates the stored shape strictly',()=>{
  expect(isUsageStats({enabled:true,id:ID,lastPing:'2026-10-29'})).toBe(true);expect(isUsageStats({enabled:false})).toBe(true);
  for(const bad of [null,[],{},{enabled:'yes'},{enabled:true,id:'abc'},{enabled:true,extra:1},{enabled:true,lastPing:'today'}])expect(isUsageStats(bad)).toBe(false);
