@@ -1,7 +1,7 @@
 export type Platform='learn'|'crowdmark'|'odyssey'|'cs135'|'mobius'|'manual';
 export type Locale='zh-CN'|'en';
-export type Palette='forest'|'ocean'|'plum'|'graphite';
-export const palettes:Palette[]=['forest','ocean','plum','graphite'];
+export type Palette='forest'|'ocean'|'plum'|'graphite'|'glass';
+export const palettes:Palette[]=['forest','ocean','plum','graphite','glass'];
 export interface Course {id:string;code:string;name:string;term?:string}
 export interface GradePlan {weights:Record<string,number>;target?:number}
 export interface ClassMeeting {id:string;course:string;title:string;weekday:number;start:string;end:string;location:string;leadMinutes:number;enabled:boolean}
