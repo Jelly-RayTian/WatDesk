@@ -14,11 +14,15 @@ You may also enter personal items, class schedules, notes, completion marks, rem
 
 ## Storage and transmission
 
-Academic records, settings, account identifiers, notes and source status are kept in this Microsoft Edge profile's local extension storage. WatDesk does not operate a backend for academic data, and does not upload those records to its developer, analytics, advertising or AI services. There are no advertising or analytics trackers in the extension.
+Academic records, settings, account identifiers, notes and source status are kept in this Microsoft Edge profile's local extension storage. WatDesk does not operate a backend for academic data, and does not upload those records to its developer, analytics, advertising or AI services. There are no advertising trackers in the extension, and no analytics unless you opt in to the anonymous usage count described below.
 
 To retrieve information, your browser sends HTTPS requests directly to the relevant school or Crowdmark service, using your existing signed-in browser session. WatDesk does not collect or store your passwords, raw session cookies, access tokens or verification codes. The source services receive those requests and apply their own privacy policies. When needed for reading, WatDesk may open inactive temporary source tabs and closes its owned tabs after use; a login challenge may require you to interact with the source site. Optional hosts are accessed after you grant the relevant permission.
 
 The permissions for storage, scheduled alarms, notifications, the side panel, script execution on supported sites and an offscreen local HTML parser serve the academic workspace. Scripts and fonts are bundled with the extension rather than downloaded for remote execution.
+
+## Optional anonymous usage count
+
+Off by default, and only present in releases that name a counting server. If you turn on **Settings → Anonymous usage count**, WatDesk sends at most one request per day containing exactly two fields: a random install ID generated on your device and the WatDesk version number (the Settings page shows the exact text before and after you enable it). It never includes courses, grades, deadlines, notes, account names, browsing history or any school data. The server records that this ID was active that day, sets the date itself, and keeps IDs for at most 400 days; it is used only to estimate how many people use WatDesk. Turning the option off stops all requests and deletes the ID from your device.
 
 ## Sharing, exports and notifications
 
