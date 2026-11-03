@@ -32,6 +32,7 @@
 | Source | What WatDesk reads |
 |---|---|
 | LEARN, Crowdmark, Odyssey | Deadlines, quizzes, released grades, submission status, exam time, room and seat |
+| Course outlines (optional) | Dated assessments from the outline of every course you are in, read from outline.uwaterloo.ca while you are signed in. Items without a published date or time are never guessed |
 | CS 135 (optional) | Course calendar, assignments, quizzes and submission records |
 | CS 145, CS 240, CS 241 (optional) | Assignment deadlines and exam times from the course website |
 | 22 more CS course sites (optional) | Link only, shown in *Course resources* |

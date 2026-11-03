@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "__MSG_extName__",
   "description": "__MSG_extDescription__",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "minimum_chrome_version": "120",
   "permissions": [
     "storage",
@@ -15,7 +15,8 @@
   "optional_host_permissions": [
     "https://student.cs.uwaterloo.ca/*",
     "https://adfs.uwaterloo.ca/*",
-    "https://uwmo.mobius.cloud/*"
+    "https://uwmo.mobius.cloud/*",
+    "https://outline.uwaterloo.ca/*"
   ],
   "background": {
     "service_worker": "worker.js",
@@ -44,7 +45,7 @@
     "https://odyssey.uwaterloo.ca/*"
   ],
   "content_security_policy": {
-    "extension_pages": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://learn.uwaterloo.ca https://app.crowdmark.com https://odyssey.uwaterloo.ca https://student.cs.uwaterloo.ca https://uwmo.mobius.cloud https://watdesk-stats.guojelly123.workers.dev"
+    "extension_pages": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://learn.uwaterloo.ca https://app.crowdmark.com https://odyssey.uwaterloo.ca https://student.cs.uwaterloo.ca https://uwmo.mobius.cloud https://outline.uwaterloo.ca https://watdesk-stats.guojelly123.workers.dev"
   },
   "default_locale": "en"
 }

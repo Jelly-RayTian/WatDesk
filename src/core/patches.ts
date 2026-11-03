@@ -1,7 +1,7 @@
 import type {Settings,Overlay} from '../domain';
 import {isCourseSite} from './course-sites';
 import {isUsageStats} from './stats';
-export const settingKeys=['syncIntervalMinutes','activeTerm','classMeetings','courseReminders','hiddenCourses','gradePlans','cs135Enabled','courseSites','usageStats','mobiusEnabled','onboardingComplete','visualVersion','locale','theme','palette','zone','taskLead','examLeads','notifications','mutedCourses'] satisfies (keyof Settings)[];
+export const settingKeys=['syncIntervalMinutes','activeTerm','classMeetings','courseReminders','hiddenCourses','gradePlans','cs135Enabled','courseSites','usageStats','mobiusEnabled','outlineEnabled','onboardingComplete','visualVersion','locale','theme','palette','zone','taskLead','examLeads','notifications','mutedCourses'] satisfies (keyof Settings)[];
 const overlayKeys=['keepSeparate','done','note','hidden','linkedTo'] satisfies (keyof Overlay)[];
 function pick(patch:unknown,keys:readonly string[]):Record<string,unknown>{
  if(!patch||typeof patch!=='object'||Array.isArray(patch))throw Error('invalid');

@@ -6,6 +6,7 @@ import {readOdyssey} from './odyssey';
 import {withTemporaryTab} from './temporary-tab';
 import {autoLogin} from './login';
 import {readMobius} from './mobius';
+import {readOutline} from './outline';
 import {readLearnSchedule} from './learn-schedule';
 import {parseOdyssey,parseCs135Html} from './parsers';
 import {readCrowdmarkApi} from './crowdmark-api';
@@ -42,6 +43,7 @@ async function readPlatformOnce(p:ReaderPlatform,state:AppState,forceGrades=fals
  if(!platforms.includes(p))throw Error('platform');if(!(await chrome.permissions.contains({origins:[origins[p]]})))throw Error('permission');
  if(p==='mobius')return readMobius(state);
  if(p==='sites')return readCourseSites(state);
+ if(p==='outline')return readOutline(state);
  if(p==='learn'){
   const tabId=existingTabId;
   const source=new LiveSource({school:'uwaterloo'},{relay:(_base:string,path:string)=>relay('learn',path,tabId)});

@@ -8,7 +8,7 @@ WatDesk is an independent project maintained by Jelly-RayTian. It is not an offi
 
 With the browser permissions you grant, WatDesk accesses supported University of Waterloo LEARN, Crowdmark and Odyssey pages or APIs to organize your enrolled courses, deadlines, quizzes, exams, released grades and submission metadata. This can include course names and identifiers, assessment titles and links, dates, scores, submission status, exam room/seat information, and account names or identifiers displayed by those services. Account identifiers help prevent records from different signed-in accounts being combined. Relevant page content is read and parsed for these features; WatDesk does not collect general browsing history.
 
-Optional CS135 access reads the public course schedule and submission metadata available to your authorized account. Optional Möbius access reads already-open activity settings pages, such as published availability, duration and explicit completion information. The optional Waterloo sign-in helper checks an already-entered university username and may advance the username-only Next step. It does not read password or verification-code values or complete those steps. WatDesk does not start quizzes, request exceptions, upload answers or submit coursework.
+Optional CS135 access reads the public course schedule and submission metadata available to your authorized account. Optional Möbius access reads already-open activity settings pages, such as published availability, duration and explicit completion information. The optional Waterloo sign-in helper checks an already-entered university username and may advance the username-only Next step. It does not read password or verification-code values or complete those steps. WatDesk does not start quizzes, request exceptions, upload answers or submit coursework. Optional course-outline access reads the signed-in outline.uwaterloo.ca list of your own courses and each outline's "Assessments & Activities" table to add explicitly dated assessments; nothing is written back and dates that are not published are never guessed.
 
 You may also enter personal items, class schedules, notes, completion marks, reminder preferences and grade-estimation weights. These are used only for the features you select. Synchronization times, source status and error details support freshness information and troubleshooting.
 
@@ -44,7 +44,7 @@ This policy will be updated when data handling changes. The effective date above
 
 ## 中文说明
 
-WatDesk 是由 Jelly-RayTian 维护的独立 Edge 扩展，非滑铁卢大学官方产品。为整理你的课程、截止事项、测验、考试、成绩与提交状态，扩展会在授权范围内读取 LEARN、Crowdmark、Odyssey，以及你选择启用的 CS135 或 Möbius。相关记录可能包含平台显示的账号名称或标识、课程与考核信息、成绩、考试教室和座位。账号标识用于防止混合不同账号的数据，不采集一般浏览历史。
+WatDesk 是由 Jelly-RayTian 维护的独立 Edge 扩展，非滑铁卢大学官方产品。为整理你的课程、截止事项、测验、考试、成绩与提交状态，扩展会在授权范围内读取 LEARN、Crowdmark、Odyssey，以及你选择启用的 CS135 或 Möbius。相关记录可能包含平台显示的账号名称或标识、课程与考核信息、成绩、考试教室和座位。账号标识用于防止混合不同账号的数据，不采集一般浏览历史。　可选的“课程大纲”来源会读取你已登录的 outline.uwaterloo.ca 中属于你的课程列表及各大纲的“Assessments & Activities”表，仅添加明确写出的日期；不会写入任何内容，也不会猜测未公布的日期。
 
 课程数据、个人事项、备注、完成标记、提醒设置和来源状态保存在当前 Edge 配置文件的本地扩展存储中。WatDesk 没有接收这些学业数据的开发者后台，不向广告、统计或 AI 服务上传这些记录。为同步，浏览器使用现有登录状态直接通过 HTTPS 访问对应学校或 Crowdmark 服务；平台按自身隐私政策处理请求。扩展不收集或保存密码、原始会话 Cookie、访问令牌或验证码。可选学校登录辅助只检查已输入的大学用户名并推进用户名步骤，不读取或处理密码和验证码。
 
