@@ -2,7 +2,7 @@
 
 **滑铁卢课程的一张安静书桌。** 把 LEARN、Crowdmark、Odyssey 的作业、考试和成绩放进 Edge 侧边栏，一眼看清下一件要做的事。
 
-[**下载最新版**](https://github.com/Jelly-RayTian/WatDesk/releases/latest) · Edge 商店：审核中 · [问题反馈](https://github.com/Jelly-RayTian/WatDesk/issues/new/choose) · [English](README.md)
+[**下载最新版**](https://github.com/Jelly-RayTian/WatDesk/releases/latest) · [**Edge 商店**](https://microsoftedge.microsoft.com/addons/detail/kbfogfkpplnjkcenbpnjilnhhckkdikb) · [问题反馈](https://github.com/Jelly-RayTian/WatDesk/issues/new/choose) · [English](README.md)
 
 ![WatDesk 概览（液态玻璃风格）](docs/screenshots/overview-liquid-glass.jpg)
 
@@ -18,13 +18,14 @@
 - **安静同步**：后台读取，不抢你的标签页；网站暂时打不开时保留旧数据。
 - **简体中文和 English**、浅色和深色，以及包括**液态玻璃**在内的五种风格。
 
-## 安装（约 3 分钟）
+## 安装（约 1 分钟）
 
-1. 到 [Releases](https://github.com/Jelly-RayTian/WatDesk/releases/latest) 下载 ZIP 并解压。
-2. 打开 `edge://extensions`，打开**开发人员模式**，点**加载解压缩的扩展**，选择直接包含 `manifest.json` 的文件夹。
-3. 固定 WatDesk，点图标打开侧边栏，用你自己的账号连接 LEARN、Crowdmark 和 Odyssey。密码和验证码都在原网站输入。可以先连一个，其余以后再加。
+1. 打开 [Microsoft Edge 商店里的 WatDesk](https://microsoftedge.microsoft.com/addons/detail/kbfogfkpplnjkcenbpnjilnhhckkdikb)，点**获取**。之后会自动更新。
+2. 固定 WatDesk，点图标打开侧边栏，用你自己的账号连接 LEARN、Crowdmark 和 Odyssey。密码和验证码都在原网站输入。可以先连一个，其余以后再加。
 
-**更新：** 先在 *设置 → 我的本地数据* 导出备份，用新文件覆盖原文件夹，再在扩展卡片上点**重新加载**。不要移除扩展，否则本地数据会被删除。
+**之前用的是手动（解压）安装？** 商店版是另一个扩展，不会共用旧数据。请先在旧版 *设置 → 我的本地数据* 导出备份，安装商店版后在同一位置导入，再移除旧版。
+
+**手动安装（可选）：** 到 [Releases](https://github.com/Jelly-RayTian/WatDesk/releases/latest) 下载 ZIP 并解压，打开 `edge://extensions`，打开**开发人员模式**，点**加载解压缩的扩展**，选择直接包含 `manifest.json` 的文件夹。更新时先导出备份，覆盖该文件夹里的文件，再点**重新加载**；不要移除扩展，否则本地数据会被删除。
 
 ## 能读取的课程
 

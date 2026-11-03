@@ -10,7 +10,7 @@ Detailed behaviour notes for people who want every detail. This text was written
 
 **Existing users / 已安装用户：** Export a JSON backup in Settings first. Replace files inside the existing unpacked extension folder, then click **Reload** on the WatDesk card in `edge://extensions`. Keep the original extension installed to retain its local data. Refresh inside WatDesk updates data, not extension code. / 先备份，再覆盖原目录并重新加载扩展；不要移除原扩展。面板内刷新只更新数据，不更新代码。
 
-The release includes a SHA-256 file for verifying the ZIP. It contains the same extension package submitted to Edge Add-ons. / 发布页附校验文件，安装包与提交 Edge 商店的包一致。
+The release includes a SHA-256 file for verifying the ZIP. It contains the same extension package published on [Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/kbfogfkpplnjkcenbpnjilnhhckkdikb). / 发布页附校验文件，安装包与 Edge 商店上架的包一致。
 
 ## v1.3 workspace
 

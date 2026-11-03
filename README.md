@@ -2,7 +2,7 @@
 
 **One calm desk for your Waterloo courses.** Deadlines, exams and grades from LEARN, Crowdmark and Odyssey in one Edge side panel, so you always know what is due next.
 
-[**Download the latest version**](https://github.com/Jelly-RayTian/WatDesk/releases/latest) · Edge Add-ons: under review · [Report a problem](https://github.com/Jelly-RayTian/WatDesk/issues/new/choose) · [简体中文](README.zh-CN.md)
+[**Download the latest version**](https://github.com/Jelly-RayTian/WatDesk/releases/latest) · [**Edge Add-ons**](https://microsoftedge.microsoft.com/addons/detail/kbfogfkpplnjkcenbpnjilnhhckkdikb) · [Report a problem](https://github.com/Jelly-RayTian/WatDesk/issues/new/choose) · [简体中文](README.zh-CN.md)
 
 ![WatDesk overview in the Liquid Glass style](docs/screenshots/overview-liquid-glass.jpg)
 
@@ -18,13 +18,14 @@
 - **Quiet sync**: reads in the background, never takes over your tabs, and keeps old data if a site is down.
 - **English and 简体中文**, light and dark, and five looks including **Liquid Glass**.
 
-## Install (about 3 minutes)
+## Install (about 1 minute)
 
-1. Download the ZIP from [Releases](https://github.com/Jelly-RayTian/WatDesk/releases/latest) and unzip it.
-2. Open `edge://extensions`, turn on **Developer mode**, click **Load unpacked**, and choose the folder that contains `manifest.json`.
-3. Pin WatDesk, click its icon to open the side panel, and connect LEARN, Crowdmark and Odyssey with your own accounts. Passwords and MFA stay on the original sites. You can start with one source and add the rest later.
+1. Open [WatDesk on Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/kbfogfkpplnjkcenbpnjilnhhckkdikb) and click **Get**. Updates then arrive automatically.
+2. Pin WatDesk, click its icon to open the side panel, and connect LEARN, Crowdmark and Odyssey with your own accounts. Passwords and MFA stay on the original sites. You can start with one source and add the rest later.
 
-**Updating:** export a backup in *Settings → My local data*, replace the files in your folder, then press **Reload** on the WatDesk card. Do not remove the extension; that deletes its local data.
+**Already using a manual (unpacked) install?** The store version is a separate extension and does not share its data. In the old one, export a backup in *Settings → My local data*, install from the store, then import that backup in the same place. Remove the old copy afterwards.
+
+**Manual install (optional):** download the ZIP from [Releases](https://github.com/Jelly-RayTian/WatDesk/releases/latest) and unzip it, open `edge://extensions`, turn on **Developer mode**, click **Load unpacked**, and choose the folder that contains `manifest.json`. To update, export a backup, replace the files in that folder, then press **Reload**; do not remove the extension, which deletes its local data.
 
 ## Courses it can read
 
