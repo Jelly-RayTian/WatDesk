@@ -1,4 +1,4 @@
-# WatDesk 1.10.0 — Edge Add-ons permission justifications
+# WatDesk 1.10.1 — Edge Add-ons permission justifications
 
 Single purpose: organize a Waterloo student's own coursework, exams and grades from sites they are already signed in to. Academic data stays in local extension storage. A usage count is on by default, can be disabled in setup or Settings, and sends only a random install ID and version to the developer’s Cloudflare Worker. No academic data is sent; there is no remote code.
 
