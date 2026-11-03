@@ -1,5 +1,5 @@
 import {withTimeout} from '../core/sync';
-export type HtmlKind='rows'|'odyssey'|'cs135';
+export type HtmlKind='rows'|'odyssey'|'cs135'|'outline';
 let parsing:Promise<unknown>=Promise.resolve();
 // Serialize the short-lived local parser so one caller cannot close another's document.
 export function parseBackgroundHtml<T>(kind:HtmlKind,html:string):Promise<T>{

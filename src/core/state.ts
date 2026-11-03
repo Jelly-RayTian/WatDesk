@@ -14,7 +14,7 @@ export function applySnapshot(state:AppState,platform:Platform,entries:Entry[],c
 }
 // Course resources can live on any site; drop only links that are not plain web links so saves still validate.
 export function sanitizeUrls(entries:Entry[]):Entry[]{return entries.map(e=>e.platform==='manual'||typeof e.url==='string'&&linkUrl(e.url)?e:{...e,url:''})}
-export function visibleEntries(s:AppState):Entry[]{const eligible=s.entries.filter(e=>!e.gradeOnly&&(e.platform!=='cs135'||s.settings.cs135Enabled===true)&&(e.platform!=='mobius'||s.settings.mobiusEnabled===true)&&courseVisible(e.course,s,e.readerCourseId)&&!s.overlays[e.id]?.hidden&&(!s.overlays[e.id]?.linkedTo||!s.entries.some(t=>t.id===s.overlays[e.id].linkedTo&&!t.gone&&!s.overlays[t.id]?.hidden)));return mergeScheduleExams(mergeTasks(eligible,s),s)}
+export function visibleEntries(s:AppState):Entry[]{const eligible=s.entries.filter(e=>!e.gradeOnly&&(e.platform!=='cs135'||s.settings.cs135Enabled===true)&&(e.platform!=='mobius'||s.settings.mobiusEnabled===true)&&(e.platform!=='outline'||s.settings.outlineEnabled===true)&&courseVisible(e.course,s,e.readerCourseId)&&!s.overlays[e.id]?.hidden&&(!s.overlays[e.id]?.linkedTo||!s.entries.some(t=>t.id===s.overlays[e.id].linkedTo&&!t.gone&&!s.overlays[t.id]?.hidden)));return mergeScheduleExams(mergeTasks(outlineUncovered(eligible,s.settings.zone),s),s)}
 export function clearSource(s:AppState,p:Platform):AppState{
  const ids=new Set(s.entries.filter(e=>e.platform===p).map(e=>e.id));const sources={...s.sources};delete sources[p];
  const overlays=Object.fromEntries(Object.entries(s.overlays).filter(([id])=>!ids.has(id)).map(([id,o])=>{const next={...o};if(next.linkedTo&&ids.has(next.linkedTo))delete next.linkedTo;return [id,next]}));
@@ -27,3 +27,14 @@ export function possibleDuplicates(s:AppState):Array<[Entry,Entry]>{
 export async function loadState():Promise<AppState>{const data=await chrome.storage.local.get('watdesk');const watdesk=data.watdesk as AppState|undefined;return watdesk?.schemaVersion===1?{...watdesk,entries:sanitizeUrls(watdesk.entries),settings:watdesk.settings.visualVersion===3?watdesk.settings:{...watdesk.settings,theme:'light',visualVersion:3}}:emptyState('en')}
 let writes:Promise<unknown>=Promise.resolve();
 export function mutateState(fn:(s:AppState)=>AppState):Promise<AppState>{const job=writes.then(async()=>{const s=fn(await loadState());await chrome.storage.local.set({watdesk:s});return s});writes=job.catch(()=>{});return job}
+// An outline row is a fallback: when LEARN, Crowdmark or another source already lists the same item that day, show that one.
+const stopWords=new Set(['the','and','for','due','class','quiz','assignment','test','in','of']);
+const words=(t:string)=>new Set(t.toLowerCase().split(/[^a-z0-9\u4e00-\u9fff]+/).filter(w=>w&&!stopWords.has(w)&&(w.length>2||/^\d+$/.test(w))));
+export function outlineUncovered(entries:Entry[],zone:string):Entry[]{
+ const day=(e:Entry)=>{const at=e.dateOnly||(e.type==='exam'?e.start:e.due);return e.dateOnly||(at?new Intl.DateTimeFormat('en-CA',{timeZone:zone}).format(new Date(at)):'')};
+ const others=entries.filter(e=>e.platform!=='outline'&&e.platform!=='manual'&&!e.gone);
+ return entries.filter(e=>{
+  if(e.platform!=='outline')return true;const d=day(e),mine=words(e.title);
+  return !others.some(o=>o.course===e.course&&day(o)===d&&[...words(o.title)].some(w=>mine.has(w)));
+ });
+}
