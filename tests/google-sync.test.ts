@@ -55,6 +55,6 @@ it('does nothing when disconnected, refuses without a client or permission, and 
  session['watdesk.google.token']={token:'tok',expires:Date.now()+3600000};await g.disconnectGoogle();
  expect(calls.some(c=>c[0]==='POST'&&c[1].startsWith('https://oauth2'))||(globalThis as any).fetch.mock.calls.some((c:any)=>String(c[0]).startsWith('https://oauth2.googleapis.com/revoke?token=tok'))).toBe(true);
  expect(mem['watdesk.google']).toBeUndefined();expect(session['watdesk.google.token']).toBeUndefined();
- vi.doUnmock('../src/core/google-config');vi.resetModules();const plain=await import('../src/background/google-calendar');mem['watdesk.google']={connected:true,synced:{}};(globalThis as any).chrome.permissions.contains=async()=>true;
+ vi.doMock('../src/core/google-config',async orig=>({...(await orig<any>()),GOOGLE_CLIENT_ID:''}));vi.resetModules();const plain=await import('../src/background/google-calendar');mem['watdesk.google']={connected:true,synced:{}};(globalThis as any).chrome.permissions.contains=async()=>true;
  await expect(plain.syncGoogle()).rejects.toThrow('google-not-configured');
 });
