@@ -43,6 +43,7 @@ Optional courses are off by default because not everyone takes them. Turn them o
 
 - Academic data is stored in your own browser and is never uploaded to a WatDesk backend. No separate account is required.
 - WatDesk never sees or stores your passwords, cookies or verification codes, and never submits anything for you.
+- Optional: **Google Calendar sync** (off until you connect it) writes your deadlines and exams to a separate "WatDesk" calendar in your own Google account, with access to that calendar only.
 - No ads. An anonymous "how many people use WatDesk" counter is available; it is **on by default and can be disabled in setup or Settings**, and the Settings page shows exactly what it sends.
 
 Full details: [Privacy policy](PRIVACY.md).
