@@ -1,4 +1,4 @@
-# WatDesk 1.10.1 — Edge Add-ons permission justifications
+# WatDesk 1.11.0 — Edge Add-ons permission justifications
 
 Single purpose: organize a Waterloo student's own coursework, exams and grades from sites they are already signed in to. Academic data stays in local extension storage. A usage count is on by default, can be disabled in setup or Settings, and sends only a random install ID and version to the developer’s Cloudflare Worker. No academic data is sent; there is no remote code.
 
@@ -11,6 +11,7 @@ Single purpose: organize a Waterloo student's own coursework, exams and grades f
 | `scripting` | Runs read-only page readers on LEARN, Crowdmark and (optionally) Möbius pages the user granted. Never submits coursework or starts quizzes. |
 | `offscreen` | Parses fetched HTML and Course Schedule PDFs locally, because the service worker has no DOM. |
 | Host `learn.uwaterloo.ca`, `app.crowdmark.com`, `odyssey.uwaterloo.ca` | Reads the user's own deadlines, exams and released grades from these services. |
+| Optional permission `identity` + optional hosts `www.googleapis.com`, `oauth2.googleapis.com` | Requested only when the user presses Connect Google Calendar. `identity` runs Google's OAuth sign-in popup; the hosts are used to create a calendar named "WatDesk" and write the user's deadlines/exams to it (scope `calendar.app.created`: that calendar only) and to revoke the token on Disconnect. Data goes only to the user's own Google account. |
 | Optional hosts `student.cs.uwaterloo.ca`, `adfs.uwaterloo.ca`, `uwmo.mobius.cloud`, `outline.uwaterloo.ca` | Requested only when the user turns on CS 135 or optional CS course sites, the username-only sign-in helper, Möbius, or course outlines. The outline source reads only the signed-in user's own course list and each outline's assessments table; it never writes. The helper never reads passwords or verification codes. |
 
 Extension-page CSP: `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; object-src 'none'; connect-src 'self' + source hosts + https://watdesk-stats.guojelly123.workers.dev` (no remote scripts or fonts; connections are limited to declared source hosts and the usage counter).

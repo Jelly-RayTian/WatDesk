@@ -14,6 +14,7 @@ import {configureSchoolLogin} from './school-login';
 import {autoLogin} from '../adapters/login';
 import {waitForTab} from '../core/sync';
 import {enabledPlatforms,sitesEnabled,outlineEnabled} from '../core/onboarding';
+import {syncGoogle,googleStatus,connectGoogle,disconnectGoogle} from './google-calendar';
 import {readableSiteIds} from '../core/course-sites';
 import {sendUsagePing,statsConfigured} from '../core/stats';
 import {pendingExamChanges} from '../core/organization';
@@ -47,6 +48,7 @@ async function refreshOnOpen(forceGrades=false,interactive?:boolean,scheduled=fa
   const after=await loadState();
   if(sitesEnabled(after)&&await chrome.permissions.contains({origins:[origins.sites]})&&(forceGrades||syncMinutes(after.settings)!==0)&&(scheduled||!canReuseSource('sites',after.sources.sites,forceGrades,Date.now(),syncMinutes(after.settings))))await sync('sites',forceGrades,interactive).catch(()=>{});
   if(outlineEnabled(after)&&await chrome.permissions.contains({origins:[origins.outline]})&&(forceGrades||syncMinutes(after.settings)!==0)&&(scheduled||!canReuseSource('outline',after.sources.outline,forceGrades,Date.now(),syncMinutes(after.settings))))await sync('outline',forceGrades,interactive).catch(()=>{});
+  void syncGoogle().catch(()=>{});
  })();try{await openedRun}finally{openedRun=undefined}
 }
 function sync(p:Exclude<Platform,'manual'>,forceGrades=true,interactive=true):Promise<void>{
@@ -114,14 +116,20 @@ async function handle(msg:any){await ready;switch(msg.type){
  case 'manual':return mutateState(s=>{const entry=msg.entry as Entry;if(entry.platform!=='manual'||!entry.title.trim()||!safeUrl(entry.url)||!['exam','task'].includes(entry.type))throw Error('invalid');const next={...s,entries:[...s.entries.filter(e=>e.id!==entry.id),entry]};return validateBackup(JSON.stringify(next))});
  case 'delete':return mutateState(s=>({...s,entries:s.entries.filter(e=>!(e.id===msg.id&&e.platform==='manual'))}));
  case 'ics':return exportIcs(await loadState());
+ case 'googleStatus':return googleStatus();
+ case 'googleConnect':await connectGoogle();return googleStatus();
+ case 'googleSync':await syncGoogle(true);return googleStatus();
+ case 'googleDisconnect':await disconnectGoogle();return googleStatus();
  case 'backup':return JSON.stringify(await loadState(),null,2);
  case 'restore':{const data=validateBackup(msg.text);fence.invalidate();await configureSchoolLogin(data.settings.schoolAutoNext===true).catch(()=>{});const saved=await mutateState(()=>recoverInterrupted(data));await configureSyncSchedule(saved.settings);return saved}
- case 'clear':{fence.invalidate();await configureSchoolLogin(false);const saved=await mutateState(s=>emptyState(s.settings.locale));await configureSyncSchedule(saved.settings);return saved;}
+ case 'clear':{await disconnectGoogle().catch(()=>{});fence.invalidate();await configureSchoolLogin(false);const saved=await mutateState(s=>emptyState(s.settings.locale));await configureSyncSchedule(saved.settings);return saved;}
  case 'clearSource':if(!platforms.includes(msg.platform))throw Error('platform');fence.invalidate(msg.platform);return mutateState(s=>clearSource(s,msg.platform));
  case 'testNotification':{const s=await loadState();await chrome.notifications.create({type:'basic',iconUrl:'icon.png',title:'WatDesk',message:s.settings.locale==='zh-CN'?'考试与任务提醒已准备就绪。':'Your exam and task reminders are ready.'});return {ok:true}}
  case 'open':if(msg.platform==='mobius'){const existing=await existingSourceTab('mobius');if(existing!=null){await chrome.tabs.update(existing,{active:true});return {ok:true}}const id=await sourceTab('learn',true);await waitForTab(id);return {ok:true}}if(platforms.includes(msg.platform)){const id=await sourceTab(msg.platform,true);await waitForTab(id);await autoLogin(msg.platform,id);return {ok:true}}throw Error('platform');
  default:throw Error('message');}}
-chrome.runtime.onMessage.addListener((msg,sender,respond)=>{if(sender.id!==chrome.runtime.id||msg?.target==='offscreen')return false;if(sender.tab&&!sender.url?.startsWith('chrome-extension://'+chrome.runtime.id+'/')){if(msg?.type==='crowdmark:page'&&sender.tab.url?.startsWith('https://app.crowdmark.com/')){void ready.then(async()=>{const state=await loadState();if(!openedRun&&state.sources.crowdmark?.status!=='ok'&&await chrome.permissions.contains({origins:[origins.crowdmark]}))void sync('crowdmark',false,false)});respond({ok:true});}return false;}handle(msg).then(value=>respond({ok:true,value})).catch(e=>respond({ok:false,error:e.message||String(e)}));return true});
+// Edits that change what the calendar should show.
+const googleTriggers=new Set(['overlay','importItems','manual','delete','restore']);
+chrome.runtime.onMessage.addListener((msg,sender,respond)=>{if(sender.id!==chrome.runtime.id||msg?.target==='offscreen')return false;if(sender.tab&&!sender.url?.startsWith('chrome-extension://'+chrome.runtime.id+'/')){if(msg?.type==='crowdmark:page'&&sender.tab.url?.startsWith('https://app.crowdmark.com/')){void ready.then(async()=>{const state=await loadState();if(!openedRun&&state.sources.crowdmark?.status!=='ok'&&await chrome.permissions.contains({origins:[origins.crowdmark]}))void sync('crowdmark',false,false)});respond({ok:true});}return false;}handle(msg).then(value=>{if(googleTriggers.has(msg?.type))void syncGoogle().catch(()=>{});respond({ok:true,value})}).catch(e=>respond({ok:false,error:e.message||String(e)}));return true});
 chrome.runtime.onInstalled.addListener(()=>{chrome.sidePanel.setPanelBehavior({openPanelOnActionClick:true});chrome.alarms.create('reminders',{periodInMinutes:1});void ready.then(s=>configureSyncSchedule(s.settings)).catch(()=>{});});
 chrome.runtime.onStartup.addListener(()=>{chrome.alarms.create('reminders',{periodInMinutes:1});void ready.then(s=>configureSyncSchedule(s.settings)).catch(()=>{})});
 chrome.alarms.onAlarm.addListener(alarm=>{if(alarm.name==='reminders')void notify().catch(()=>{});else if(alarm.name==='sync'){void refreshOnOpen(false,false,true).catch(()=>{})}});
