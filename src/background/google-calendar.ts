@@ -71,11 +71,15 @@ async function runOnce(interactive:boolean){
   if(rest)again=true;
  }catch(e){await write({lastError:e instanceof Error?e.message:String(e)});throw e}
 }
+// An hourly alarm keeps the 1-hour token fresh (silent renewal) and the calendar current without the panel being open.
+export async function scheduleGoogle(){
+ if((await readGoogle()).connected)await chrome.alarms.create('google',{periodInMinutes:55});else await chrome.alarms.clear('google');
+}
 export async function connectGoogle(){
- await accessToken(true);await write({connected:true,lastError:undefined});await syncGoogle(true);
+ await accessToken(true);await write({connected:true,lastError:undefined});await scheduleGoogle();await syncGoogle(true);
 }
 export async function disconnectGoogle(){
  const saved=(await chrome.storage.session.get(TOKEN))[TOKEN] as {token:string}|undefined;
  if(saved)await fetch(`https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(saved.token)}`,{method:'POST'}).catch(()=>{});
- await chrome.storage.session.remove(TOKEN);await chrome.storage.local.remove(KEY);
+ await chrome.storage.session.remove(TOKEN);await chrome.storage.local.remove(KEY);await scheduleGoogle();
 }

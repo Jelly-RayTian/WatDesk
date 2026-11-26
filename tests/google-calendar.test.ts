@@ -7,7 +7,8 @@ const exam:Entry={...base,id:'odyssey:1',platform:'odyssey',type:'exam',title:'M
 const dated:Entry={...base,id:'outline:a:five-sources:2026-12-05',platform:'outline',title:'Five Sources',dateOnly:'2026-12-05',due:'2026-12-06T04:59:59Z'};
 it('turns entries into Google events without guessing',()=>{
  const t=eventForEntry(task,'America/Toronto')!;
- expect(t.summary).toBe('CS 135 · Assignment 06');expect(t.start.dateTime).toBe('2026-11-27T04:59:00.000Z');expect(t.end.dateTime).toBe('2026-11-27T05:14:00.000Z');expect(t.reminders).toEqual({useDefault:false});
+ expect(t.summary).toBe('CS 135 Assignment 06');expect(t.colorId).toMatch(/^([1-9]|1[01])$/);expect(eventForEntry({...task,id:'learn:2',title:'Another'},'America/Toronto')!.colorId).toBe(t.colorId);
+ expect(eventForEntry({...task,course:'MATH 135',title:'MATH 135 Quiz 2'},'America/Toronto')!.summary).toBe('MATH 135 Quiz 2');expect(t.start.dateTime).toBe('2026-11-27T04:59:00.000Z');expect(t.end.dateTime).toBe('2026-11-27T05:14:00.000Z');expect(t.reminders).toEqual({useDefault:false});
  expect(t.description).toContain('LEARN');expect(t.description).toContain('https://learn.uwaterloo.ca/d2l/home');expect(t.source?.url).toBe('https://learn.uwaterloo.ca/d2l/home');
  const x=eventForEntry(exam,'America/Toronto')!;expect(x.end.dateTime).toBe('2026-12-01T01:50:00.000Z');expect(x.description).toContain('DC 1350 · Seat B12');
  const d=eventForEntry(dated,'America/Toronto')!;expect(d.start).toEqual({date:'2026-12-05'});expect(d.end).toEqual({date:'2026-12-06'});

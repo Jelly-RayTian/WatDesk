@@ -14,7 +14,7 @@ import {configureSchoolLogin} from './school-login';
 import {autoLogin} from '../adapters/login';
 import {waitForTab} from '../core/sync';
 import {enabledPlatforms,sitesEnabled,outlineEnabled} from '../core/onboarding';
-import {syncGoogle,googleStatus,connectGoogle,disconnectGoogle} from './google-calendar';
+import {syncGoogle,googleStatus,connectGoogle,disconnectGoogle,scheduleGoogle} from './google-calendar';
 import {readableSiteIds} from '../core/course-sites';
 import {sendUsagePing,statsConfigured} from '../core/stats';
 import {pendingExamChanges} from '../core/organization';
@@ -130,9 +130,9 @@ async function handle(msg:any){await ready;switch(msg.type){
 // Edits that change what the calendar should show.
 const googleTriggers=new Set(['overlay','importItems','manual','delete','restore']);
 chrome.runtime.onMessage.addListener((msg,sender,respond)=>{if(sender.id!==chrome.runtime.id||msg?.target==='offscreen')return false;if(sender.tab&&!sender.url?.startsWith('chrome-extension://'+chrome.runtime.id+'/')){if(msg?.type==='crowdmark:page'&&sender.tab.url?.startsWith('https://app.crowdmark.com/')){void ready.then(async()=>{const state=await loadState();if(!openedRun&&state.sources.crowdmark?.status!=='ok'&&await chrome.permissions.contains({origins:[origins.crowdmark]}))void sync('crowdmark',false,false)});respond({ok:true});}return false;}handle(msg).then(value=>{if(googleTriggers.has(msg?.type))void syncGoogle().catch(()=>{});respond({ok:true,value})}).catch(e=>respond({ok:false,error:e.message||String(e)}));return true});
-chrome.runtime.onInstalled.addListener(()=>{chrome.sidePanel.setPanelBehavior({openPanelOnActionClick:true});chrome.alarms.create('reminders',{periodInMinutes:1});void ready.then(s=>configureSyncSchedule(s.settings)).catch(()=>{});});
-chrome.runtime.onStartup.addListener(()=>{chrome.alarms.create('reminders',{periodInMinutes:1});void ready.then(s=>configureSyncSchedule(s.settings)).catch(()=>{})});
-chrome.alarms.onAlarm.addListener(alarm=>{if(alarm.name==='reminders')void notify().catch(()=>{});else if(alarm.name==='sync'){void refreshOnOpen(false,false,true).catch(()=>{})}});
+chrome.runtime.onInstalled.addListener(()=>{chrome.sidePanel.setPanelBehavior({openPanelOnActionClick:true});chrome.alarms.create('reminders',{periodInMinutes:1});void scheduleGoogle().catch(()=>{});void ready.then(s=>configureSyncSchedule(s.settings)).catch(()=>{});});
+chrome.runtime.onStartup.addListener(()=>{chrome.alarms.create('reminders',{periodInMinutes:1});void scheduleGoogle().catch(()=>{});void ready.then(s=>configureSyncSchedule(s.settings)).catch(()=>{})});
+chrome.alarms.onAlarm.addListener(alarm=>{if(alarm.name==='reminders')void notify().catch(()=>{});else if(alarm.name==='google'){void syncGoogle().catch(()=>{})}else if(alarm.name==='sync'){void refreshOnOpen(false,false,true).catch(()=>{})}});
 
 // Returning from school sign-in retries failed sources without another Refresh click.
 chrome.tabs?.onUpdated?.addListener((_id,change,tab)=>{if(isTemporaryTab(_id)||change.status!=='complete'||!tab.url||openedRun)return;if(tab.url.startsWith('https://student.cs.uwaterloo.ca/~cs135/assign/viewsubmissions/')){void sync('cs135',false,false).catch(()=>{});return}if(tab.url.startsWith('https://uwmo.mobius.cloud/')){void sync('mobius',false,false).catch(()=>{});return}const p=platforms.find(p=>p!=='mobius'&&p!=='cs135'&&tab.url?.startsWith(urls[p]));if(!p)return;void ready.then(async()=>{const status=(await loadState()).sources[p];if(status?.status==='error'&&/sign.in|signed.out|session.unreadable/i.test(status.error||''))void sync(p,false,false).catch(()=>{})})});

@@ -6,7 +6,7 @@ let flow=vi.fn();
 beforeEach(()=>{
  for(const m of [mem,session])for(const k of Object.keys(m))delete m[k];
  flow=vi.fn(async()=>'https://abc.chromiumapp.org/#access_token=tok&expires_in=3600&token_type=Bearer');
- (globalThis as any).chrome={storage:{local:store(mem),session:store(session)},permissions:{contains:async()=>true},identity:{getRedirectURL:()=>'https://abc.chromiumapp.org/',launchWebAuthFlow:flow},runtime:{id:'abc'}};
+ (globalThis as any).chrome={storage:{local:store(mem),session:store(session)},permissions:{contains:async()=>true},identity:{getRedirectURL:()=>'https://abc.chromiumapp.org/',launchWebAuthFlow:flow},runtime:{id:'abc'},alarms:{create:vi.fn(async()=>{}),clear:vi.fn(async()=>true)}};
 });
 const entry=(n:number):Entry=>({id:'learn:'+n,platform:'learn',course:'CS 135',title:'A'+n,type:'task',start:null,end:null,due:new Date(Date.now()+86400000*(n+1)).toISOString(),status:'open',url:''});
 const withClient=async()=>{vi.resetModules();vi.doMock('../src/core/google-config',async orig=>({...(await orig<any>()),GOOGLE_CLIENT_ID:'client.apps.googleusercontent.com'}));return import('../src/background/google-calendar')};
@@ -31,6 +31,7 @@ it('creates the WatDesk calendar, upserts events idempotently and deletes remove
   return {status:200};
  });
  await g.connectGoogle();
+ expect((globalThis as any).chrome.alarms.create).toHaveBeenCalledWith('google',{periodInMinutes:55});
  expect(flow).toHaveBeenCalledTimes(1);expect(flow.mock.calls[0][0].interactive).toBe(true);
  const posts=calls.filter(c=>c[0]==='POST'&&c[1].includes('/events'));expect(posts).toHaveLength(2);// the 409 conflict is retried as a PUT
  expect(calls.some(c=>c[0]==='PUT')).toBe(true);expect(calls[0][2].summary).toBe('WatDesk');
@@ -54,7 +55,7 @@ it('does nothing when disconnected, refuses without a client or permission, and 
  await expect(g.syncGoogle()).rejects.toThrow('google-permission');
  session['watdesk.google.token']={token:'tok',expires:Date.now()+3600000};await g.disconnectGoogle();
  expect(calls.some(c=>c[0]==='POST'&&c[1].startsWith('https://oauth2'))||(globalThis as any).fetch.mock.calls.some((c:any)=>String(c[0]).startsWith('https://oauth2.googleapis.com/revoke?token=tok'))).toBe(true);
- expect(mem['watdesk.google']).toBeUndefined();expect(session['watdesk.google.token']).toBeUndefined();
+ expect(mem['watdesk.google']).toBeUndefined();expect(session['watdesk.google.token']).toBeUndefined();expect((globalThis as any).chrome.alarms.clear).toHaveBeenCalledWith('google');
  vi.doMock('../src/core/google-config',async orig=>({...(await orig<any>()),GOOGLE_CLIENT_ID:''}));vi.resetModules();const plain=await import('../src/background/google-calendar');mem['watdesk.google']={connected:true,synced:{}};(globalThis as any).chrome.permissions.contains=async()=>true;
  await expect(plain.syncGoogle()).rejects.toThrow('google-not-configured');
 });
